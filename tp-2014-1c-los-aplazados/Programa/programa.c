@@ -48,6 +48,20 @@ void levantarArchivoPrograma(){
 	strcpy(script,string);
 	config_destroy(archivoConf);
 }
+
+void levantarPrograma(){
+	char caracter;
+	int i=0;
+	FILE *Archivo;
+	Archivo= fopen(script, "r"); /*Abrir archivo para lectura*/
+    if(Archivo == NULL){
+	   printf("Error al abrir el archivo \n");
+	   exit (EXIT_FAILURE);}
+    while((caracter=fgetc(Archivo))!=EOF)
+		programa[i++]=caracter;
+    programa[i]='\0';
+    fclose(Archivo);
+}
 //Envia el script al kernel
 int enviarScript(){
 
@@ -91,16 +105,5 @@ int enviarScript(){
 			buffer[nbytesRecibidos]='\0';
 			return EXIT_SUCCESS;}
 }
-void levantarPrograma(){
-	char caracter;
-	int i=0;
-	FILE *Archivo;
-	Archivo= fopen(script, "r"); /*Abrir archivo para lectura*/
-    if(Archivo == NULL){
-	   printf("Error al abrir el archivo \n");
-	   exit (EXIT_FAILURE);}
-    while((caracter=fgetc(Archivo))!=EOF)
-		programa[i++]=caracter;
-    programa[i]='\0';
-    fclose(Archivo);
-}
+
+

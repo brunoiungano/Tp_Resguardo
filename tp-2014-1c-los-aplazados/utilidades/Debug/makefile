@@ -26,7 +26,7 @@ all: libutilidades.so
 
 dependents:
 	-cd /home/utnso/workspace/tp-2014-1c-los-aplazados/commons/Debug && $(MAKE) all
-	-cd /home/utnso/workspace/tp-2014-1c-los-aplazados/utilidades/Release && $(MAKE) clean all
+	-cd /home/utnso/workspace/tp-2014-1c-los-aplazados/utilidades/Release && $(MAKE) all
 
 # Tool invocations
 libutilidades.so: $(OBJS) $(USER_OBJS) /home/utnso/workspace/tp-2014-1c-los-aplazados/commons/Debug/libcommons.so /home/utnso/workspace/tp-2014-1c-los-aplazados/utilidades/Release/libutilidades.so

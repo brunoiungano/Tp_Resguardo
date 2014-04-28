@@ -20,10 +20,13 @@
 //Definicion de funciones
 void levantarArchivoCPU();
 int conectarAlKernel();
+int conectarAlUmv();
 
 //Variables globales
 char *string, ipKernel[20], *direccion, *programa;
-int puertoKernel;
+char ipUmv[20];
+int puertoKernel,puertoUmv;
+
 
 //INICIO
 int main(int argc, char* argv[]) {
@@ -34,6 +37,7 @@ int main(int argc, char* argv[]) {
 	string=(char*)malloc(sizeof(char)*100);
 	levantarArchivoCPU();//Levanto el archivo programa
 	conectarAlKernel();
+	conectarAlUmv();
 	return 0;
 }
 
@@ -44,6 +48,9 @@ void levantarArchivoCPU(){
 	string=config_get_string_value(archivoConf,"ip_kernel");
 	strcpy(ipKernel,string);
 	puertoKernel=config_get_int_value(archivoConf,"puerto_kernel");
+	string=config_get_string_value(archivoConf,"ip_umv");
+	strcpy(ipUmv,string);
+	puertoUmv=config_get_int_value(archivoConf,"puerto_umv");
 	config_destroy(archivoConf);
 }
 
@@ -94,4 +101,42 @@ int conectarAlKernel(){
 	  return EXIT_SUCCESS;
 	}
 }
+
+int conectarAlUmv(){
+	//Variables de comunicacion
+	int unSocket_Umv;
+	struct sockaddr_in socketInfo;
+    char bufferUmv[BUFF_SIZE];
+	printf("Conectando...\n");
+
+	// Crear un socket:
+	// AF_INET: Socket de internet IPv4
+	// SOCK_STREAM: Orientado a la conexion, TCP
+	// 0: Usar protocolo por defecto para AF_INET-SOCK_STREAM: Protocolo TCP/IPv4
+		if ((unSocket_Umv = socket(AF_INET, SOCK_STREAM, 0)) < 0) {
+			perror("Error al crear socket");
+			return EXIT_FAILURE;
+		}
+
+		socketInfo.sin_family = AF_INET;
+		socketInfo.sin_addr.s_addr = inet_addr(ipUmv);//Uso ip del kernel
+		socketInfo.sin_port = htons(puertoUmv);//Uso puerto del kernel
+
+	// Conectar el socket con la direccion 'socketInfo'.
+		if (connect(unSocket_Umv, (struct sockaddr*) &socketInfo, sizeof(socketInfo))!= 0) {
+
+			perror("Error al conectar socket");
+			return EXIT_FAILURE;
+		}
+		printf("Conectado a la Umv!\n");
+
+		strcpy(bufferUmv,"Reserva memoria para programa");
+	    //Le informo a la Umv que tengo un programa para reservar memoria
+	    if (send(unSocket_Umv, bufferUmv, strlen(bufferUmv), 0) >= 0)
+		  printf("Datos enviados a la Umv!\n");
+	    else
+		  {perror("Error al enviar datos. UMV no encontrado.\n");
+
+		  return EXIT_SUCCESS;}
+		}
 
