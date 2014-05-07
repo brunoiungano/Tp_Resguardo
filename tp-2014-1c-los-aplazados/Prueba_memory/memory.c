@@ -40,12 +40,20 @@ struct segmento{
 	};
 
 void poner_segmento_en_diccionario(t_segmento *,char *);
+
 void MuestraLista(t_segmento *);
-t_segmento *sacar_elemento_de_diccionario();
-void InsertaLista( t_segmento **, int,int,int);
-t_segmento *CrearLista(int ,int ,int );
-void destroy_All_segment(char *);
-static void segment_destroy(t_segmento *);
+
+t_segmento *sacar_elemento_de_diccionario(char *);
+
+void InsertaLista( t_segmento **, t_segmento);
+
+t_segmento *CrearLista(t_segmento);
+
+void destruir_segmentos_de_programa(char *);
+
+void crear_segmento(char *,int );
+
+static void segment_destroy(t_list *);
 
 t_dictionary *dictionary;
 char ID[4];
@@ -56,7 +64,7 @@ char ID[4];
 int main(){
 
 	t_segmento *obtenido;
-	t_segmento segmento1,segmento2,segmento3;
+	t_segmento segmento1,segmento2,segmento3,segmento4;
 	t_segmento *lista;
 
 
@@ -77,20 +85,25 @@ int main(){
 	segmento3.inicio=5;
 	segmento3.tamanio=62;
 	segmento3.ubicacion_memoria=144;
+	strcpy(segmento4.Id_Programa,"12");
+	segmento4.inicio=5;
+	segmento4.tamanio=62;
+	segmento4.ubicacion_memoria=144;
 	printf("Ingrese ID clave a retirar:");
 	scanf("%s",ID);
 
 	//Creo lista con los distintos segmentos de cada programa
-	lista=CrearLista(segmento1.inicio,segmento1.tamanio,segmento1.ubicacion_memoria);
-	InsertaLista(&lista,segmento2.inicio,segmento2.tamanio,segmento2.ubicacion_memoria);
+	lista=CrearLista(segmento1);
+	InsertaLista(&lista,segmento2);
 	poner_segmento_en_diccionario(lista,segmento2.Id_Programa);//guardo lista en diccionario con Id_Programa como key value
-	lista=CrearLista(segmento3.inicio,segmento3.tamanio,segmento3.ubicacion_memoria);
+	lista=CrearLista(segmento3);
 	poner_segmento_en_diccionario(lista,segmento3.Id_Programa);
+	crear_segmento("12",12);//Creo un segmento del programa con ID 12 y tamaño 12;
 
 	//Guardo en obtenido el elemento sacado del diccionario con la key value
-	obtenido=sacar_elemento_de_diccionario();
+	obtenido=sacar_elemento_de_diccionario(ID);
 	MuestraLista(obtenido);
-	destroy_All_segment(ID);
+	destruir_segmentos_de_programa(ID);//me destruye la lista de segmentos del ID ingresado
 	printf("%d",dictionary_size(dictionary));
 	return 0;
 
@@ -107,8 +120,9 @@ int main(){
 	dictionary_put(dictionary, id, p1);
 }
  //Saco elemento de diccionario
- t_segmento *sacar_elemento_de_diccionario(){
-	 t_segmento *aux = dictionary_get(dictionary, ID);
+
+ t_segmento *sacar_elemento_de_diccionario(char *id){
+	 t_segmento *aux = dictionary_get(dictionary, id);
 	 return aux;
  }
 
@@ -121,46 +135,58 @@ int main(){
  }
 
 //Creo la lista de segmentos que se guardara en cada nodo Key value
- t_segmento *CrearLista(int inicio,int tamanio,int direccion) {  /* Crea la lista, claro */
+ t_segmento *CrearLista(t_segmento segmento) {  /* Crea la lista, claro */
    t_segmento* r;        /* Variable auxiliar */
    r = (t_segmento*)
      malloc (sizeof(t_segmento)); /* Reserva memoria */
-   r->inicio = inicio;            /* Guarda el valor */
-   r->tamanio=tamanio;
-   r->ubicacion_memoria=direccion;
+   r->inicio = segmento.inicio;            /* Guarda el valor */
+   r->tamanio=segmento.tamanio;
+   r->ubicacion_memoria=segmento.ubicacion_memoria;
    r->siguiente = NULL;           /* No hay siguiente */
    return r;               /* Crea el struct lista* */
  }
 
  //Inserta segmento en la lista correspondiente
- void InsertaLista( t_segmento **lista, int inicio,int tamanio,int direccion) {
+ void InsertaLista( t_segmento **lista, t_segmento segmento) {
   t_segmento* r;        /* Variable auxiliar, para reservar */
    t_segmento* actual;   /* Otra auxiliar, para recorrer */
 
    actual = *lista;
    if (actual)                           /*  Si hay lista */
-     if (actual->inicio< inicio)         /*    y todavía no es su sitio */
-       InsertaLista(&actual->siguiente,inicio,tamanio,direccion); /*   mira la siguiente posición */
+     if (actual->inicio< segmento.inicio)         /*    y todavía no es su sitio */
+       InsertaLista(&actual->siguiente,segmento); /*   mira la siguiente posición */
      else {                     /* Si hay lista pero ya es su sitio */
-       r = CrearLista(inicio,tamanio,direccion);   /* guarda el dato */
+       r = CrearLista(segmento);   /* guarda el dato */
        r->siguiente = actual;         /* pone la lista a continuac. */
        *lista = r;              /* Y hace que comience en el nuevo dato */
      }
    else {              /* Si no hay lista, hay que crearla */
-     r = CrearLista(inicio,tamanio,direccion);
+     r = CrearLista(segmento);
      *lista = r;       /* y hay que indicar donde debe comenzar */
     }
  }
-//Elimino todos los segmentos
-void destroy_All_segment(char *id){
-dictionary_remove_and_destroy(dictionary, id, (void*) segment_destroy);
+
+//Elimino todos los segmentos de un programa
+void destruir_segmentos_de_programa(char *id){
+dictionary_remove_and_destroy(dictionary, id, (void*)segment_destroy);
 }
 
-//Elimina segmento individual
-static void segment_destroy(t_segmento *ptr){
-while(ptr!=NULL){
-	free(ptr);
-	ptr++;
+//Elimina lista de segmento
+static void segment_destroy(t_list *ptr){
+list_destroy(ptr);
 }
+
+//Creo segmento,le paso como parametro el ID del programa y el tamaño del segmento
+void crear_segmento(char *id,int tamanio){
+	t_segmento nuevoSegmento;
+	t_segmento *list;
+	nuevoSegmento.inicio=0;
+	nuevoSegmento.tamanio=tamanio;
+	nuevoSegmento.ubicacion_memoria=14;
+	list=dictionary_remove(dictionary,id);
+	InsertaLista(&list,nuevoSegmento);
+	poner_segmento_en_diccionario(list,id);
+
 }
+
 
