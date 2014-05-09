@@ -54,13 +54,15 @@ void destruir_segmentos_de_programa(char *);
 
 void crear_segmento(char *,int );
 
- static void segments_destroy(t_list *);
 
-static void destruir_un_segmento(t_segmento*);
+
+static void destruir_un_segmento(t_list*);
 
 static  t_segmento *segmento_create(t_segmento );
 
 int determinar_direccion_logica(t_list *);
+
+static void romperSegmento(t_segmento *);
 
 t_dictionary *dictionary;
 char ID[4];
@@ -71,7 +73,6 @@ char ID[4];
 int main(){
 
 	t_list *obtenido;
-	t_segmento segmento1,segmento2,segmento3;
 	t_segmento *segmento4;
 	int i=0,cantidad_segmentos;
 
@@ -81,32 +82,12 @@ int main(){
 
 	dictionary=dictionary_create();
 
-//Creo segmentos de  prueba
-	strcpy(segmento1.Id_Programa,"12");
-	segmento1.inicio=0;
-	segmento1.tamanio=5;
-	segmento1.ubicacion_memoria=13;
-	strcpy(segmento2.Id_Programa,"12");
-	segmento2.inicio=1;
-	segmento2.tamanio=12;
-	segmento2.ubicacion_memoria=17;
-	strcpy(segmento3.Id_Programa,"13");
-	segmento3.inicio=5;
-	segmento3.tamanio=62;
-	segmento3.ubicacion_memoria=144;
 	printf("Ingrese ID clave a retirar:");
 	scanf("%s",ID);
-
-	//Creo lista con los distintos segmentos de cada programa
-
-	t_list *list=list_create();
-	list_add(list,segmento_create(segmento1));
-	list_add(list,segmento_create(segmento2));
-
-	poner_segmento_en_diccionario(list,segmento2.Id_Programa);//guardo lista en diccionario con Id_Programa como key value
+ //Creo segmentos con Key y tamanio aleatorio
 	crear_segmento("12",12);
 	crear_segmento("13",10);
-	crear_segmento("12",10);
+	crear_segmento("12",11);
 	crear_segmento("12",24);
 
 	//Guardo en obtenido el elemento sacado del diccionario con la key value
@@ -118,11 +99,14 @@ int main(){
 		i++;
 
 	}
+
 	destruir_segmentos_de_programa(ID);
-	if(dictionary_is_empty(dictionary))
+	if(dictionary_is_empty(dictionary)){
 			printf("Vacio");
+	}
 	else
-		printf("no vacio %d",dictionary_size(dictionary));
+		printf("no vacio %d",list_size(obtenido));
+
 
 	return 0;
 
@@ -144,20 +128,24 @@ int main(){
 	 return aux;
  }
 
-//Elimino todos los segmentos de un programa
+//Elimino todos los segmentos de un programa, ingresando el ID del mismo, ya que es la Key
 void destruir_segmentos_de_programa(char *id){
 
-dictionary_remove_and_destroy(dictionary, id,(void*)list_destroy);
+dictionary_remove_and_destroy(dictionary,id,(void*)destruir_un_segmento);
 }
 
-//Elimina lista de segmento
-static void segments_destroy(t_list *list){
-	list_clean(list);
+//Funcion para destruir los elementos de la lista
+static void destruir_un_segmento(t_list *list){
+
+	list_destroy_and_destroy_elements(list,(void*)romperSegmento);
 }
 
-static void destruir_un_segmento(t_segmento *p){
+//Funcion para eliminar un segmento
+static void romperSegmento(t_segmento *p){
 	free(p);
+
 }
+
 
 //Creo segmento,le paso como parametro el ID del programa y el tamaño del segmento
 void crear_segmento(char *id,int tamanio){
