@@ -4,8 +4,12 @@
  *  Created on: 07/05/2014
  *      Author: utnso
  */
-
-
+/*
+ * algoritmo.c
+ *
+ *  Created on: 07/05/2014
+ *      Author: utnso
+ */
 #include <stdio.h>
 #include <stdlib.h>
 #include <commons/config.h> //Biblioteca de la catedra
@@ -27,16 +31,17 @@
 
 typedef struct segmento t_segmento;
 struct segmento{
-		char Id_Programa[4];
 		int inicio;
 		int tamanio;
-		int ubicacion_memoria;
+		char *ubicacion_memoria;
 	};
+
 typedef struct bloqueLibre t_bloque_libre;
 struct bloqueLibre{
-	int inicio;
+	char *inicio;
 	int tamanio;
 };
+
 
 void poner_segmento_en_diccionario(t_list *,char *);
 
@@ -45,55 +50,82 @@ t_list *sacar_elemento_de_diccionario(char *);
 
 void destruir_segmentos_de_programa(char *);
 
-void crear_segmento(char *,int );
+void crear_segmento(char *,int);
 
-static void segments_destroy(t_list *);
+void segments_destroy(t_list *);
 
-static void destruir_un_segmento(t_segmento*);
+ void destruir_un_segmento(t_segmento*);
 
-static  t_segmento *segmento_create(t_segmento );
+t_segmento *segmento_create(t_segmento );
 
 int determinar_direccion_logica(t_list *);
-static  t_bloque_libre *bloque_create(t_bloque_libre );
+
+t_bloque_libre *bloque_create(t_bloque_libre );
+
+int validacion_en_memoria(int ,t_list *);
+
+void actualizar_memory(int ,t_bloque_libre **);
+
+void imprimir_estado_memory(t_bloque_libre *);
+
+int _es_bloque_accesible(t_bloque_libre *);
+
+char *colocar_en_memoria_FirstFit(int);
+
+t_bloque_libre *encontrar_disponible(t_bloque_libre *);
 
 t_dictionary *dictionary;
-char ID[4];
-int variable=100;
+t_list *lista_de_bloquesLibres;
 
+char ID[4];
+int variable=1000;
+void* memoria_principal;
+char* manejador;
+int tamanio;
 
 //-----------------------------------------------------------------------------
 int main(){
-int *puntero,variable;
-void* memoria_principal=malloc(100);
-int* mallocInt=(int*)memoria_principal;
-int cantidad,i=0;
+
+//Declaramos los punteros, memoria_principal es el "gran malloc", el manejador es para recorrer dicho malloc, y el resguardo es para
+//no perder el puntero a la memoria prncipal;
+memoria_principal=malloc(1000);
+manejador=memoria_principal;
+
+
 t_bloque_libre bloqueLibre;
-t_list *lista_de_bloquesLibres=list_create();
+dictionary=dictionary_create();
+lista_de_bloquesLibres=list_create();
 list_add(lista_de_bloquesLibres,bloque_create(bloqueLibre));
-printf("Ponga bytes para almacenar:");
-scanf("%d",&cantidad);
 t_bloque_libre *obtenido=list_get(lista_de_bloquesLibres,0);
-obtenido->inicio=(obtenido->inicio+cantidad);
-obtenido->tamanio=(obtenido->tamanio-cantidad);
-printf("%d\n",obtenido->inicio);
-printf("%d\n",obtenido->tamanio);
-mallocInt[i]=cantidad;
-printf("%p",&mallocInt[i]);
+
+printf("manejador%p\n",manejador);
+printf("Inicio libre %p\n",obtenido->inicio);
 
 
+crear_segmento("12",20);
 
 
 return 0;
-
-
-
-
-
 }
 
 //------------------------------------------------------------------------------------------
 
-//Creo nodo dinamico para almacenar segmento en dictionary
+void actualizar_memory(int cantidad,t_bloque_libre **puntero){
+	t_bloque_libre *ptr;
+	ptr=*puntero;
+	ptr->inicio=(ptr->inicio+(sizeof(char)*cantidad));
+	ptr->tamanio=(ptr->tamanio-cantidad);
+}
+
+void imprimir_estado_memory(t_bloque_libre *bloque){
+printf("El inicio del bloque libre es : %p\n",bloque->inicio);
+printf("El tamaño del bloque libre es: %d\n",bloque->tamanio);
+}
+
+int validacion_en_memoria(int cantidad,t_list *lista_de_bloques){
+	t_bloque_libre *obtenido=list_get(lista_de_bloques,0);
+	return (cantidad<=obtenido->tamanio);
+}
 
 
 //Coloco segmento en diccionario
@@ -114,11 +146,11 @@ dictionary_remove_and_destroy(dictionary, id,(void*)list_destroy);
 }
 
 //Elimina lista de segmento
-static void segments_destroy(t_list *list){
+void segments_destroy(t_list *list){
 	list_clean(list);
 }
 
-static void destruir_un_segmento(t_segmento *p){
+ void destruir_un_segmento(t_segmento *p){
 	free(p);
 }
 
@@ -126,26 +158,41 @@ static void destruir_un_segmento(t_segmento *p){
 void crear_segmento(char *id,int tamanio){
 	t_segmento nuevoSegmento;
 	t_list  *list;
-	if(dictionary_has_key(dictionary,id)){
-	list=dictionary_get(dictionary,id);
-	nuevoSegmento.inicio=determinar_direccion_logica(list);
-	nuevoSegmento.tamanio=tamanio;
-	nuevoSegmento.ubicacion_memoria=24;
-	list_add(list,segmento_create(nuevoSegmento));
-	poner_segmento_en_diccionario(list,id);}
+	if(validacion_en_memoria(tamanio,lista_de_bloquesLibres)){
+
+		if(dictionary_has_key(dictionary,id)){
+			list=dictionary_get(dictionary,id);
+			nuevoSegmento.inicio=determinar_direccion_logica(list);
+			nuevoSegmento.tamanio=tamanio;
+			nuevoSegmento.ubicacion_memoria=colocar_en_memoria_FirstFit(tamanio);
+			t_bloque_libre *obtenido=list_get(lista_de_bloquesLibres,0);
+			actualizar_memory(tamanio,&obtenido);
+			printf("Libre %p",obtenido->inicio);
+			printf("Ubicacion%p\n",nuevoSegmento.ubicacion_memoria);
+			list_add(list,segmento_create(nuevoSegmento));
+			poner_segmento_en_diccionario(list,id);}
 		else{
 			t_list *lista=list_create();
 			nuevoSegmento.inicio=0;
 			nuevoSegmento.tamanio=tamanio;
-			nuevoSegmento.ubicacion_memoria=24;
+			nuevoSegmento.ubicacion_memoria=colocar_en_memoria_FirstFit(tamanio);
+			t_bloque_libre *obtenido=list_get(lista_de_bloquesLibres,0);
+			actualizar_memory(tamanio,&obtenido);
+			printf("Libre %p\n",obtenido->inicio);
+			printf("Ubicacion%p\n",nuevoSegmento.ubicacion_memoria);
 			list_add(lista,segmento_create(nuevoSegmento));
 			poner_segmento_en_diccionario(lista,id);
+		}
+	}
+	else{
+		printf("no hay memoria disponible");
 
 	}
 
 }
 
-static  t_segmento *segmento_create(t_segmento segmento){
+//Creo nodo dinamico para almacenar segmento en dictionary
+ t_segmento *segmento_create(t_segmento segmento){
 	t_segmento *new = malloc( sizeof(t_segmento) );
 	new->inicio = segmento.inicio;
 	new->tamanio=segmento.tamanio;
@@ -164,16 +211,28 @@ int determinar_direccion_logica(t_list *lista){
 	return maximo;
 }
 
-static  t_bloque_libre *bloque_create(t_bloque_libre bloque){
+t_bloque_libre *bloque_create(t_bloque_libre bloque){
 	t_bloque_libre *new = malloc( sizeof(t_bloque_libre) );
-	new->inicio = 0;
+	new->inicio =manejador;
 	new->tamanio=variable;
 	return new;
 }
 
-void guardoBytes(int cantidad,t_list *lista){
-	t_bloque_libre *obtenido=list_get(lista,0);
-	obtenido->inicio=(obtenido->inicio+cantidad);
-	obtenido->tamanio=(obtenido->tamanio-cantidad);
-
+char *colocar_en_memoria_FirstFit(tamanio){
+t_bloque_libre *obtenido=list_find(lista_de_bloquesLibres,(void*)_es_bloque_accesible);
+return obtenido->inicio;
 }
+
+int _es_bloque_accesible(t_bloque_libre *bloque){
+	return (tamanio<=bloque->tamanio);
+}
+
+
+
+
+
+
+
+
+
+
