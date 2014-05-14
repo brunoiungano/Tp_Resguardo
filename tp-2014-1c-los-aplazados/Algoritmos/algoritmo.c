@@ -4,12 +4,6 @@
  *  Created on: 07/05/2014
  *      Author: utnso
  */
-/*
- * algoritmo.c
- *
- *  Created on: 07/05/2014
- *      Author: utnso
- */
 #include <stdio.h>
 #include <stdlib.h>
 #include <commons/config.h> //Biblioteca de la catedra
@@ -72,7 +66,11 @@ int _es_bloque_accesible(t_bloque_libre *);
 
 char *colocar_en_memoria_FirstFit(int);
 
-t_bloque_libre *encontrar_disponible(t_bloque_libre *);
+int _bloques_mayor_a_menor(t_bloque_libre *, t_bloque_libre *);
+
+int _bloques_ordenados_por_direccion(t_bloque_libre *, t_bloque_libre *);
+
+
 
 t_dictionary *dictionary;
 t_list *lista_de_bloquesLibres;
@@ -90,7 +88,7 @@ int main(){
 //no perder el puntero a la memoria prncipal;
 memoria_principal=malloc(1000);
 manejador=memoria_principal;
-
+int b=0;
 
 t_bloque_libre bloqueLibre;
 dictionary=dictionary_create();
@@ -103,7 +101,19 @@ printf("Inicio libre %p\n",obtenido->inicio);
 
 
 crear_segmento("12",20);
-
+crear_segmento("12",10);
+crear_segmento("12",13);
+crear_segmento("12",150);
+crear_segmento("12",15);
+destruir_segmentos_de_programa("12");
+printf("El tamaño de la lista de bloques libres es %d\n",list_size(lista_de_bloquesLibres));
+//prueba unitaria para probar si los bloques libres se estan agregando
+list_sort(lista_de_bloquesLibres,(void*)_bloques_ordenados_por_direccion);
+while(b<list_size(lista_de_bloquesLibres)){
+	t_bloque_libre* bloque=list_get(lista_de_bloquesLibres,b);
+	printf("El inicio de este bloque libre es %p\n",bloque->inicio);
+	b++;
+}
 
 return 0;
 }
@@ -141,8 +151,20 @@ int validacion_en_memoria(int cantidad,t_list *lista_de_bloques){
 
 //Elimino todos los segmentos de un programa
 void destruir_segmentos_de_programa(char *id){
-
+int cantidadDeSegmentos=0;
+int i=0;
+t_list* lista=sacar_elemento_de_diccionario(id);
+while(cantidadDeSegmentos<list_size(lista)){
+	t_segmento* segmento=list_get(lista,i);
+	t_bloque_libre *bloquelibre=malloc(sizeof(t_bloque_libre));
+	bloquelibre->inicio=segmento->ubicacion_memoria;
+	bloquelibre->tamanio=segmento->tamanio;
+	list_add(lista_de_bloquesLibres,bloquelibre);
+	cantidadDeSegmentos++;
+	i++;
+}
 dictionary_remove_and_destroy(dictionary, id,(void*)list_destroy);
+
 }
 
 //Elimina lista de segmento
@@ -167,8 +189,9 @@ void crear_segmento(char *id,int tamanio){
 			nuevoSegmento.ubicacion_memoria=colocar_en_memoria_FirstFit(tamanio);
 			t_bloque_libre *obtenido=list_get(lista_de_bloquesLibres,0);
 			actualizar_memory(tamanio,&obtenido);
-			printf("Libre %p",obtenido->inicio);
 			printf("Ubicacion%p\n",nuevoSegmento.ubicacion_memoria);
+			printf("Comienzo de bloque Libre %p despues de haber guardado %d bytes\n",obtenido->inicio,tamanio);
+			printf("Espacio en memoria disponible %d\n",obtenido->tamanio);
 			list_add(list,segmento_create(nuevoSegmento));
 			poner_segmento_en_diccionario(list,id);}
 		else{
@@ -178,8 +201,9 @@ void crear_segmento(char *id,int tamanio){
 			nuevoSegmento.ubicacion_memoria=colocar_en_memoria_FirstFit(tamanio);
 			t_bloque_libre *obtenido=list_get(lista_de_bloquesLibres,0);
 			actualizar_memory(tamanio,&obtenido);
-			printf("Libre %p\n",obtenido->inicio);
 			printf("Ubicacion%p\n",nuevoSegmento.ubicacion_memoria);
+			printf("Comienzo de bloque Libre %p despues de haber guardado %d bytes\n",obtenido->inicio,tamanio);
+			printf("Espacio en memoria disponible %d\n",obtenido->tamanio);
 			list_add(lista,segmento_create(nuevoSegmento));
 			poner_segmento_en_diccionario(lista,id);
 		}
@@ -218,17 +242,33 @@ t_bloque_libre *bloque_create(t_bloque_libre bloque){
 	return new;
 }
 
+//Retorno la direccion de memoria segun el Algoritmo First Fit
 char *colocar_en_memoria_FirstFit(tamanio){
+list_sort(lista_de_bloquesLibres,(void*)_bloques_ordenados_por_direccion);
 t_bloque_libre *obtenido=list_find(lista_de_bloquesLibres,(void*)_es_bloque_accesible);
 return obtenido->inicio;
 }
 
+//Retorno la direccion de memoria segun el Algoritmo Worst Fit
+char *colocar_en_memoria_WorstFit(tamanio){
+	list_sort(lista_de_bloquesLibres,(void*)_bloques_mayor_a_menor);
+	t_bloque_libre *obtenido=list_find(lista_de_bloquesLibres,(void*)_es_bloque_accesible);
+	return obtenido->inicio;
+}
+//Condicion para el algoritmo Worst Fit, necesito ordenar bloques de mayor a menor
+int _bloques_mayor_a_menor(t_bloque_libre *libre, t_bloque_libre *mas_libre) {
+		return libre->tamanio > mas_libre->tamanio;
+	}
+
+//Condicin es bloque acesible, evalua si el tamaño del segmento es menor que el tamaño libre
 int _es_bloque_accesible(t_bloque_libre *bloque){
 	return (tamanio<=bloque->tamanio);
 }
 
-
-
+//Condicion para ordenar la lista de bloques libres por direccion de memoria
+int _bloques_ordenados_por_direccion(t_bloque_libre *libre, t_bloque_libre *libre1) {
+		return libre->inicio < libre1->inicio;
+	}
 
 
 
