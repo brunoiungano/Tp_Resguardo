@@ -4,6 +4,12 @@
  *  Created on: 07/05/2014
  *      Author: utnso
  */
+/*
+ * algoritmo.c
+ *
+ *  Created on: 07/05/2014
+ *      Author: utnso
+ */
 #include <stdio.h>
 #include <stdlib.h>
 #include <commons/config.h> //Biblioteca de la catedra
@@ -70,6 +76,10 @@ int _bloques_mayor_a_menor(t_bloque_libre *, t_bloque_libre *);
 
 int _bloques_ordenados_por_direccion(t_bloque_libre *, t_bloque_libre *);
 
+int _es_mismo_bloque(t_bloque_libre*);
+
+t_bloque_libre *buscar_bloque_en_lista();
+
 
 
 t_dictionary *dictionary;
@@ -80,8 +90,9 @@ int variable=1000;
 void* memoria_principal;
 char* manejador;
 int tamanio;
+char* direccion;
 
-//-----------------------------------------------------------------------------
+//-----------------------Prueba del main-----------------------------------
 int main(){
 
 //Declaramos los punteros, memoria_principal es el "gran malloc", el manejador es para recorrer dicho malloc, y el resguardo es para
@@ -101,17 +112,19 @@ printf("Inicio libre %p\n",obtenido->inicio);
 
 
 crear_segmento("12",20);
-crear_segmento("12",10);
-crear_segmento("12",13);
-crear_segmento("12",150);
-crear_segmento("12",15);
-destruir_segmentos_de_programa("12");
+crear_segmento("12",40);
+crear_segmento("13",60);
+crear_segmento("12",80);
+crear_segmento("13",140);
+
+
 printf("El tamaño de la lista de bloques libres es %d\n",list_size(lista_de_bloquesLibres));
 //prueba unitaria para probar si los bloques libres se estan agregando
 list_sort(lista_de_bloquesLibres,(void*)_bloques_ordenados_por_direccion);
 while(b<list_size(lista_de_bloquesLibres)){
 	t_bloque_libre* bloque=list_get(lista_de_bloquesLibres,b);
 	printf("El inicio de este bloque libre es %p\n",bloque->inicio);
+	printf("El tamaño de este bloque es %d\n",bloque->tamanio);
 	b++;
 }
 
@@ -187,7 +200,8 @@ void crear_segmento(char *id,int tamanio){
 			nuevoSegmento.inicio=determinar_direccion_logica(list);
 			nuevoSegmento.tamanio=tamanio;
 			nuevoSegmento.ubicacion_memoria=colocar_en_memoria_FirstFit(tamanio);
-			t_bloque_libre *obtenido=list_get(lista_de_bloquesLibres,0);
+			direccion=nuevoSegmento.ubicacion_memoria;
+			t_bloque_libre *obtenido=buscar_bloque_en_lista();
 			actualizar_memory(tamanio,&obtenido);
 			printf("Ubicacion%p\n",nuevoSegmento.ubicacion_memoria);
 			printf("Comienzo de bloque Libre %p despues de haber guardado %d bytes\n",obtenido->inicio,tamanio);
@@ -199,7 +213,8 @@ void crear_segmento(char *id,int tamanio){
 			nuevoSegmento.inicio=0;
 			nuevoSegmento.tamanio=tamanio;
 			nuevoSegmento.ubicacion_memoria=colocar_en_memoria_FirstFit(tamanio);
-			t_bloque_libre *obtenido=list_get(lista_de_bloquesLibres,0);
+			direccion=nuevoSegmento.ubicacion_memoria;
+			t_bloque_libre *obtenido=buscar_bloque_en_lista();
 			actualizar_memory(tamanio,&obtenido);
 			printf("Ubicacion%p\n",nuevoSegmento.ubicacion_memoria);
 			printf("Comienzo de bloque Libre %p despues de haber guardado %d bytes\n",obtenido->inicio,tamanio);
@@ -256,8 +271,8 @@ char *colocar_en_memoria_WorstFit(tamanio){
 	return obtenido->inicio;
 }
 //Condicion para el algoritmo Worst Fit, necesito ordenar bloques de mayor a menor
-int _bloques_mayor_a_menor(t_bloque_libre *libre, t_bloque_libre *mas_libre) {
-		return libre->tamanio > mas_libre->tamanio;
+int _bloques_mayor_a_menor(t_bloque_libre *libre, t_bloque_libre *libre2) {
+		return libre->tamanio > libre2->tamanio;
 	}
 
 //Condicin es bloque acesible, evalua si el tamaño del segmento es menor que el tamaño libre
@@ -271,7 +286,17 @@ int _bloques_ordenados_por_direccion(t_bloque_libre *libre, t_bloque_libre *libr
 	}
 
 
+//Hago esta funcion para que el actualizar memory solo me actualice el bloque de memoria libre correspondiente
+t_bloque_libre *buscar_bloque_en_lista(){
+	t_bloque_libre *bloqueFree=list_find(lista_de_bloquesLibres,(void*)_es_mismo_bloque);
+	return bloqueFree;
+	}
 
+//Condicion de t_bloque_libre *buscar_bloque_en_lista() para que me encuentre el bloque con dicha direccion
+int _es_mismo_bloque(t_bloque_libre* bloque){
+	return bloque->inicio==direccion;
+
+}
 
 
 
