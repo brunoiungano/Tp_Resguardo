@@ -77,6 +77,8 @@ int _es_bloque_accesible(t_bloque_libre *);
 
 char *colocar_en_memoria_FirstFit(int);
 
+char *colocar_en_memoria_WorstFit(int);
+
 int _bloques_mayor_a_menor(t_bloque_libre *, t_bloque_libre *);
 
 int _bloques_ordenados_por_direccion(t_bloque_libre *, t_bloque_libre *);
@@ -89,7 +91,7 @@ void levantarArchivoKernel();
 
 t_id *idEnList_create(t_id);
 
-t_segmento* buscar_id_segun_posicion(char*);
+t_segmento* buscar_id_segun_posicion();
 
 void _agregar_a_lista(char* );
 
@@ -118,7 +120,7 @@ int main(){
 
 //Declaramos los punteros, memoria_principal es el "gran malloc", el manejador es para recorrer dicho malloc, y el resguardo es para
 //no perder el puntero a la memoria prncipal;
-memoria_principal=malloc(1000);
+memoria_principal=malloc(100);
 manejador=memoria_principal;
 int b=0;
 int l;
@@ -140,8 +142,7 @@ crear_segmento("13",60);
 crear_segmento("12",60);
 
 destruir_segmentos_de_programa("13");
-compactar_memoria();
-
+crear_segmento("14",10);
 
 hago_lista_con_ids();
 l=list_size(lista_de_id);
@@ -151,14 +152,6 @@ while(c<l){
 	printf("El id es %s\n",id->id);
 	c++;
 }
-
-
-
-
-
-
-
-
 
 printf("El tamaño de la lista de bloques libres es %d\n",list_size(lista_de_bloquesLibres));
 //prueba unitaria para probar si los bloques libres se estan agregando
@@ -188,8 +181,15 @@ printf("El tamaño del bloque libre es: %d\n",bloque->tamanio);
 }
 
 int validacion_en_memoria(int cantidad,t_list *lista_de_bloques){
-	t_bloque_libre *obtenido=list_get(lista_de_bloques,0);
-	return (cantidad<=obtenido->tamanio);
+	int i=0;
+	int memoria=0;
+	int cantidad_de_bloques=list_size(lista_de_bloques);
+	while(i<cantidad_de_bloques){
+		t_bloque_libre *obtenido=list_get(lista_de_bloques,i);
+		memoria=memoria+obtenido->tamanio;
+		i++;
+	}
+	return (cantidad<=memoria);
 }
 
 
@@ -245,7 +245,7 @@ void crear_segmento(char *id,int tamanio){
 			direccion=nuevoSegmento.ubicacion_memoria;
 			t_bloque_libre *obtenido=buscar_bloque_en_lista();
 			actualizar_memory(tamanio,&obtenido);
-			printf("Ubicacion%p\n",nuevoSegmento.ubicacion_memoria);
+			printf("Ubicacion del segmento%p\n",nuevoSegmento.ubicacion_memoria);
 			printf("Comienzo de bloque Libre %p despues de haber guardado %d bytes\n",obtenido->inicio,tamanio);
 			printf("Espacio en memoria disponible %d\n",obtenido->tamanio);
 			list_add(list,segmento_create(nuevoSegmento));
@@ -265,10 +265,8 @@ void crear_segmento(char *id,int tamanio){
 			poner_segmento_en_diccionario(lista,id);
 		}
 	}
-	else{
-		printf("no hay memoria disponible");
-
-	}
+	else
+		printf("No hay memoria disponible\n");
 
 }
 
@@ -378,7 +376,7 @@ void _agregar_a_lista(char* key){
 	list_add(lista_de_id,key);
 }
 
-t_segmento *buscar_id_segun_posicion(char* puntero){
+t_segmento *buscar_id_segun_posicion(){
 	int i=0;
 	int encontrado=0;
 	t_segmento*segmento=malloc(sizeof(t_segmento));
