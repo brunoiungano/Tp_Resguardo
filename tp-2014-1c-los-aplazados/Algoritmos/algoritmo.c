@@ -123,8 +123,7 @@ int main(){
 memoria_principal=malloc(100);
 manejador=memoria_principal;
 int b=0;
-int l;
-int c=0;
+
 
 t_bloque_libre bloqueLibre;
 dictionary=dictionary_create();
@@ -143,22 +142,14 @@ crear_segmento("12",60);
 
 destruir_segmentos_de_programa("13");
 crear_segmento("14",10);
-
-hago_lista_con_ids();
-l=list_size(lista_de_id);
-printf("%d\n",l);
-while(c<l){
-	t_id* id=list_get(lista_de_id,c);
-	printf("El id es %s\n",id->id);
-	c++;
-}
+compactar_memoria();
 
 printf("El tamaño de la lista de bloques libres es %d\n",list_size(lista_de_bloquesLibres));
 //prueba unitaria para probar si los bloques libres se estan agregando
 list_sort(lista_de_bloquesLibres,(void*)_bloques_ordenados_por_direccion);
 while(b<list_size(lista_de_bloquesLibres)){
 	t_bloque_libre* bloque=list_get(lista_de_bloquesLibres,b);
-	printf("El inicio de este bloque libre es %p\n",bloque->inicio);
+	printf("El inicio de este bloque libre es %p el fin es %p\n",bloque->inicio,bloque->inicio+bloque->tamanio);
 	printf("El tamaño de este bloque es %d\n",bloque->tamanio);
 	b++;
 }
@@ -245,7 +236,7 @@ void crear_segmento(char *id,int tamanio){
 			direccion=nuevoSegmento.ubicacion_memoria;
 			t_bloque_libre *obtenido=buscar_bloque_en_lista();
 			actualizar_memory(tamanio,&obtenido);
-			printf("Ubicacion del segmento%p\n",nuevoSegmento.ubicacion_memoria);
+			printf("Ubicacion del segmento %p\n",nuevoSegmento.ubicacion_memoria);
 			printf("Comienzo de bloque Libre %p despues de haber guardado %d bytes\n",obtenido->inicio,tamanio);
 			printf("Espacio en memoria disponible %d\n",obtenido->tamanio);
 			list_add(list,segmento_create(nuevoSegmento));
@@ -258,7 +249,7 @@ void crear_segmento(char *id,int tamanio){
 			direccion=nuevoSegmento.ubicacion_memoria;
 			t_bloque_libre *obtenido=buscar_bloque_en_lista();
 			actualizar_memory(tamanio,&obtenido);
-			printf("Ubicacion%p\n",nuevoSegmento.ubicacion_memoria);
+			printf("Ubicacion del segmento %p\n",nuevoSegmento.ubicacion_memoria);
 			printf("Comienzo de bloque Libre %p despues de haber guardado %d bytes\n",obtenido->inicio,tamanio);
 			printf("Espacio en memoria disponible %d\n",obtenido->tamanio);
 			list_add(lista,segmento_create(nuevoSegmento));
@@ -353,21 +344,30 @@ void levantarArchivoKernel(){
 }
 
 void compactar_memoria(){
-	int cantidad=list_size(lista_de_bloquesLibres);
-	int contador=0;
-	char* puntero=memoria_principal;
-	while(contador<=cantidad){
-		t_bloque_libre *libre=list_get(lista_de_bloquesLibres,contador);
-		puntero=(libre->inicio+libre->tamanio);
-		hago_lista_con_ids();
-		t_segmento *unSegmento=buscar_id_segun_posicion(puntero);
-		unSegmento->ubicacion_memoria=0;
-		printf("%p",unSegmento->ubicacion_memoria);
+	puntero=memoria_principal;
+
+
+	t_bloque_libre *libre=list_get(lista_de_bloquesLibres,0);
+	printf("La direccion del bloque libre %p \n",libre->inicio);
+	puntero=(libre->inicio+libre->tamanio);
+	printf("La suma del tamaño del bloque libre y el puntero es %p \n",puntero);
+	hago_lista_con_ids();
+	t_segmento *unSegmento=buscar_id_segun_posicion();
+	printf("El segmento que sigue a ese bloque esta ubicado en la direccion%p\n",unSegmento->ubicacion_memoria);
+	char*puntero1=malloc(unSegmento->tamanio);
+	puntero1=unSegmento->ubicacion_memoria;
+	puntero1="Bruno";
+	if(libre->tamanio>=unSegmento->tamanio)
+		memcpy(libre->inicio,puntero1,unSegmento->tamanio);
+
+	printf("Despues de la compactacion el bloque tiene direccion %p \n",puntero1);
+	printf("%s",libre->inicio);
+
+
 
 
 
 	}
-}
 
 void hago_lista_con_ids(){
 dictionary_iterator(dictionary, (void*)_agregar_a_lista);}
@@ -379,8 +379,9 @@ void _agregar_a_lista(char* key){
 t_segmento *buscar_id_segun_posicion(){
 	int i=0;
 	int encontrado=0;
-	t_segmento*segmento=malloc(sizeof(t_segmento));
-	while(encontrado==0){
+	t_segmento* segmento;
+	int cant=list_size(lista_de_id);
+	while(encontrado==0 && i<cant ){
 		t_id* identificador=list_get(lista_de_id,i);
 		t_list* lista=sacar_elemento_de_diccionario(identificador->id);
 		segmento=list_find(lista,(void*)es_puntero_de_segmento);
@@ -389,11 +390,13 @@ t_segmento *buscar_id_segun_posicion(){
 			}
 		else i++;
 		}
-return segmento;
+	if(encontrado!=0)
+		return segmento;
+	else return NULL;
 }
 
 
 int es_puntero_de_segmento(t_segmento *segmento){
-	return segmento->ubicacion_memoria==puntero;
+	return (segmento->ubicacion_memoria==puntero);
 }
 
