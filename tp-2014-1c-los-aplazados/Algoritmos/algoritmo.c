@@ -42,6 +42,11 @@ struct bloqueLibre{
 	int tamanio;
 };
 
+typedef struct idEnLista t_id;
+struct idEnLista{
+	char id[6];
+};
+
 
 void poner_segmento_en_diccionario(t_list *,char *);
 
@@ -80,10 +85,24 @@ int _es_mismo_bloque(t_bloque_libre*);
 
 t_bloque_libre *buscar_bloque_en_lista();
 
+void levantarArchivoKernel();
+
+t_id *idEnList_create(t_id);
+
+t_segmento* buscar_id_segun_posicion(char*);
+
+void _agregar_a_lista(char* );
+
+int es_puntero_de_segmento(t_segmento *);
+
+void hago_lista_con_ids();
+
+void compactar_memoria();
 
 
 t_dictionary *dictionary;
 t_list *lista_de_bloquesLibres;
+t_list* lista_de_id;
 
 char ID[4];
 int variable=1000;
@@ -91,6 +110,8 @@ void* memoria_principal;
 char* manejador;
 int tamanio;
 char* direccion;
+char *string, algortimo_de_ubicacion[20];
+char*puntero;
 
 //-----------------------Prueba del main-----------------------------------
 int main(){
@@ -100,10 +121,13 @@ int main(){
 memoria_principal=malloc(1000);
 manejador=memoria_principal;
 int b=0;
+int l;
+int c=0;
 
 t_bloque_libre bloqueLibre;
 dictionary=dictionary_create();
 lista_de_bloquesLibres=list_create();
+lista_de_id=list_create();
 list_add(lista_de_bloquesLibres,bloque_create(bloqueLibre));
 t_bloque_libre *obtenido=list_get(lista_de_bloquesLibres,0);
 
@@ -112,10 +136,28 @@ printf("Inicio libre %p\n",obtenido->inicio);
 
 
 crear_segmento("12",20);
-crear_segmento("12",40);
 crear_segmento("13",60);
-crear_segmento("12",80);
-crear_segmento("13",140);
+crear_segmento("12",60);
+
+destruir_segmentos_de_programa("13");
+compactar_memoria();
+
+
+hago_lista_con_ids();
+l=list_size(lista_de_id);
+printf("%d\n",l);
+while(c<l){
+	t_id* id=list_get(lista_de_id,c);
+	printf("El id es %s\n",id->id);
+	c++;
+}
+
+
+
+
+
+
+
 
 
 printf("El tamaño de la lista de bloques libres es %d\n",list_size(lista_de_bloquesLibres));
@@ -257,6 +299,11 @@ t_bloque_libre *bloque_create(t_bloque_libre bloque){
 	return new;
 }
 
+t_id *idEnList_create(t_id id){
+	t_id *new = malloc( sizeof(t_id) );
+	strcpy(new->id,id.id);
+	return new;
+}
 //Retorno la direccion de memoria segun el Algoritmo First Fit
 char *colocar_en_memoria_FirstFit(tamanio){
 list_sort(lista_de_bloquesLibres,(void*)_bloques_ordenados_por_direccion);
@@ -298,6 +345,57 @@ int _es_mismo_bloque(t_bloque_libre* bloque){
 
 }
 
+//Levanta el archivo de configuracion
+void levantarArchivoKernel(){
+	t_config *archivoConf;
+	archivoConf=config_create(direccion);
+	string=config_get_string_value(archivoConf,"algoritmo");
+	strcpy(algortimo_de_ubicacion,string);
+	config_destroy(archivoConf);
+}
+
+void compactar_memoria(){
+	int cantidad=list_size(lista_de_bloquesLibres);
+	int contador=0;
+	char* puntero=memoria_principal;
+	while(contador<=cantidad){
+		t_bloque_libre *libre=list_get(lista_de_bloquesLibres,contador);
+		puntero=(libre->inicio+libre->tamanio);
+		hago_lista_con_ids();
+		t_segmento *unSegmento=buscar_id_segun_posicion(puntero);
+		unSegmento->ubicacion_memoria=0;
+		printf("%p",unSegmento->ubicacion_memoria);
 
 
+
+	}
+}
+
+void hago_lista_con_ids(){
+dictionary_iterator(dictionary, (void*)_agregar_a_lista);}
+
+void _agregar_a_lista(char* key){
+	list_add(lista_de_id,key);
+}
+
+t_segmento *buscar_id_segun_posicion(char* puntero){
+	int i=0;
+	int encontrado=0;
+	t_segmento*segmento=malloc(sizeof(t_segmento));
+	while(encontrado==0){
+		t_id* identificador=list_get(lista_de_id,i);
+		t_list* lista=sacar_elemento_de_diccionario(identificador->id);
+		segmento=list_find(lista,(void*)es_puntero_de_segmento);
+		if(segmento!=NULL){
+				encontrado=1;
+			}
+		else i++;
+		}
+return segmento;
+}
+
+
+int es_puntero_de_segmento(t_segmento *segmento){
+	return segmento->ubicacion_memoria==puntero;
+}
 
