@@ -101,6 +101,11 @@ void hago_lista_con_ids();
 
 void compactar_memoria();
 
+void actualizar_memory_compactada(int,t_bloque_libre **);
+
+void elimino_bloque(t_bloque_libre *bloque);
+
+void eliminar_bloque_libre();
 
 t_dictionary *dictionary;
 t_list *lista_de_bloquesLibres;
@@ -123,6 +128,7 @@ int main(){
 memoria_principal=malloc(100);
 manejador=memoria_principal;
 int b=0;
+int z=0;
 
 
 t_bloque_libre bloqueLibre;
@@ -142,7 +148,25 @@ crear_segmento("12",60);
 
 destruir_segmentos_de_programa("13");
 crear_segmento("14",10);
+
+printf("ANTES DE REALIZAR LA COMPACTACION, LA MEMORIA ESTA ASI \n");
+printf("\n");
+printf("\n");
+printf("\n");
+printf("El tamaño de la lista de bloques libres es %d\n",list_size(lista_de_bloquesLibres));
+//prueba unitaria para probar si los bloques libres se estan agregando
+list_sort(lista_de_bloquesLibres,(void*)_bloques_ordenados_por_direccion);
+while(z<list_size(lista_de_bloquesLibres)){
+	t_bloque_libre* bloque=list_get(lista_de_bloquesLibres,z);
+	printf("El inicio de este bloque libre es %p el fin es %p\n",bloque->inicio,bloque->inicio+bloque->tamanio);
+	printf("El tamaño de este bloque es %d\n",bloque->tamanio);
+	z++;
+}
+printf("DESPUES DE REALIZAR LA COMPACTACION, LA MEMORIA ESTA ASI \n");
 compactar_memoria();
+printf("\n");
+printf("\n");
+printf("\n");
 
 printf("El tamaño de la lista de bloques libres es %d\n",list_size(lista_de_bloquesLibres));
 //prueba unitaria para probar si los bloques libres se estan agregando
@@ -154,6 +178,8 @@ while(b<list_size(lista_de_bloquesLibres)){
 	b++;
 }
 
+
+
 return 0;
 }
 
@@ -164,6 +190,12 @@ void actualizar_memory(int cantidad,t_bloque_libre **puntero){
 	ptr=*puntero;
 	ptr->inicio=(ptr->inicio+(sizeof(char)*cantidad));
 	ptr->tamanio=(ptr->tamanio-cantidad);
+}
+
+void actualizar_memory_compactada(int cantidad,t_bloque_libre **puntero){
+	t_bloque_libre *ptr;
+	ptr=*puntero;
+	ptr->inicio=(ptr->inicio+(sizeof(char)*cantidad));
 }
 
 void imprimir_estado_memory(t_bloque_libre *bloque){
@@ -209,7 +241,7 @@ while(cantidadDeSegmentos<list_size(lista)){
 	cantidadDeSegmentos++;
 	i++;
 }
-dictionary_remove_and_destroy(dictionary, id,(void*)list_destroy);
+
 
 }
 
@@ -343,8 +375,10 @@ void levantarArchivoKernel(){
 	config_destroy(archivoConf);
 }
 
+//compactar la memoria principal
 void compactar_memoria(){
 	puntero=memoria_principal;
+
 
 
 	t_bloque_libre *libre=list_get(lista_de_bloquesLibres,0);
@@ -356,19 +390,36 @@ void compactar_memoria(){
 	printf("El segmento que sigue a ese bloque esta ubicado en la direccion%p\n",unSegmento->ubicacion_memoria);
 	char*puntero1=malloc(unSegmento->tamanio);
 	puntero1=unSegmento->ubicacion_memoria;
-	puntero1="Bruno";
-	if(libre->tamanio>=unSegmento->tamanio)
+	if(libre->tamanio > unSegmento->tamanio)
+
 		memcpy(libre->inicio,puntero1,unSegmento->tamanio);
+		unSegmento->ubicacion_memoria=libre->inicio;
+		actualizar_memory_compactada(unSegmento->tamanio,&libre);
+		t_bloque_libre *libre1=list_get(lista_de_bloquesLibres,0);
+		t_bloque_libre *libre2=list_get(lista_de_bloquesLibres,1);
 
-	printf("Despues de la compactacion el bloque tiene direccion %p \n",puntero1);
-	printf("%s",libre->inicio);
+		if(libre1->inicio+libre1->tamanio==libre2->inicio)
+			libre2->inicio=libre1->inicio;
+			libre2->tamanio=libre1->tamanio+libre2->tamanio;
+			eliminar_bloque_libre();
 
-
-
-
+	printf("Despues de la compactacion el bloque tiene direccion %p \n",libre->inicio);
+	printf("Despues de la compactacion la ubicacion del segmento es: %p\n",unSegmento->ubicacion_memoria);
 
 	}
 
+void eliminar_bloque_libre(){
+	list_remove_and_destroy_element(lista_de_bloquesLibres, 0, (void*)elimino_bloque);
+
+}
+
+void elimino_bloque(t_bloque_libre *bloque){
+	free(bloque);
+}
+
+
+
+//Creo una lista compuesta por todos los Id's del diccionario
 void hago_lista_con_ids(){
 dictionary_iterator(dictionary, (void*)_agregar_a_lista);}
 
@@ -395,8 +446,11 @@ t_segmento *buscar_id_segun_posicion(){
 	else return NULL;
 }
 
-
+//Condicion de que la ubicacion en memoria de un segmento es igual al puntero que se busca
 int es_puntero_de_segmento(t_segmento *segmento){
 	return (segmento->ubicacion_memoria==puntero);
 }
+
+
+
 

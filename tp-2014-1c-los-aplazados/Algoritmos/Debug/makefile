@@ -25,13 +25,13 @@ endif
 all: Algoritmos
 
 dependents:
-	-cd /home/utnso/workspace/Tp_LosAplazados_Operativos/commons/Debug && $(MAKE) all
+	-cd /home/utnso/workspace/tp-2014-1c-los-aplazados/commons/Debug && $(MAKE) all
 
 # Tool invocations
-Algoritmos: $(OBJS) $(USER_OBJS) /home/utnso/workspace/Tp_LosAplazados_Operativos/commons/Debug/libcommons.so
+Algoritmos: $(OBJS) $(USER_OBJS) /home/utnso/workspace/tp-2014-1c-los-aplazados/commons/Debug/libcommons.so
 	@echo 'Building target: $@'
 	@echo 'Invoking: GCC C Linker'
-	gcc -L"/home/utnso/workspace/Tp_LosAplazados_Operativos/commons/Debug" -o "Algoritmos" $(OBJS) $(USER_OBJS) $(LIBS)
+	gcc -L"/home/utnso/workspace/tp-2014-1c-los-aplazados/commons/Debug" -o "Algoritmos" $(OBJS) $(USER_OBJS) $(LIBS)
 	@echo 'Finished building target: $@'
 	@echo ' '
 
@@ -42,6 +42,6 @@ clean:
 
 .PHONY: all clean dependents
 .SECONDARY:
-/home/utnso/workspace/Tp_LosAplazados_Operativos/commons/Debug/libcommons.so:
+/home/utnso/workspace/tp-2014-1c-los-aplazados/commons/Debug/libcommons.so:
 
 -include ../makefile.targets
