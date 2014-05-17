@@ -107,6 +107,8 @@ void elimino_bloque(t_bloque_libre *bloque);
 
 void eliminar_bloque_libre();
 
+void actualizar_bloques_libres();
+
 t_dictionary *dictionary;
 t_list *lista_de_bloquesLibres;
 t_list* lista_de_id;
@@ -129,6 +131,7 @@ memoria_principal=malloc(100);
 manejador=memoria_principal;
 int b=0;
 int z=0;
+int pruebita=0;
 
 
 t_bloque_libre bloqueLibre;
@@ -145,9 +148,22 @@ printf("Inicio libre %p\n",obtenido->inicio);
 crear_segmento("12",20);
 crear_segmento("13",60);
 crear_segmento("12",60);
+crear_segmento("12",80);
+crear_segmento("13",160);
+crear_segmento("10",15);
+
 
 destruir_segmentos_de_programa("13");
 crear_segmento("14",10);
+destruir_segmentos_de_programa("10");
+hago_lista_con_ids();
+int cantidad_libertad=list_size(lista_de_id);
+while(pruebita<cantidad_libertad){
+	t_id *ident=list_get(lista_de_id,pruebita);
+	printf("Identificados %s\n",ident->id);
+	pruebita++;
+}
+
 
 printf("ANTES DE REALIZAR LA COMPACTACION, LA MEMORIA ESTA ASI \n");
 printf("\n");
@@ -241,7 +257,7 @@ while(cantidadDeSegmentos<list_size(lista)){
 	cantidadDeSegmentos++;
 	i++;
 }
-
+dictionary_remove_and_destroy(dictionary, id,(void*)list_destroy);
 
 }
 
@@ -374,14 +390,16 @@ void levantarArchivoKernel(){
 	strcpy(algortimo_de_ubicacion,string);
 	config_destroy(archivoConf);
 }
-
-//compactar la memoria principal
+//----------COMPACTACION--------------------
+//Compactar la memoria principal
 void compactar_memoria(){
 	puntero=memoria_principal;
+	int contador=0;
+	int cantidad=list_size(lista_de_bloquesLibres);
+	actualizar_bloques_libres();
+	while(contador<cantidad){
 
-
-
-	t_bloque_libre *libre=list_get(lista_de_bloquesLibres,0);
+	t_bloque_libre *libre=list_get(lista_de_bloquesLibres,contador);
 	printf("La direccion del bloque libre %p \n",libre->inicio);
 	puntero=(libre->inicio+libre->tamanio);
 	printf("La suma del tamaño del bloque libre y el puntero es %p \n",puntero);
@@ -390,34 +408,51 @@ void compactar_memoria(){
 	printf("El segmento que sigue a ese bloque esta ubicado en la direccion%p\n",unSegmento->ubicacion_memoria);
 	char*puntero1=malloc(unSegmento->tamanio);
 	puntero1=unSegmento->ubicacion_memoria;
-	if(libre->tamanio > unSegmento->tamanio)
-
+	if(libre->tamanio >= unSegmento->tamanio){
 		memcpy(libre->inicio,puntero1,unSegmento->tamanio);
 		unSegmento->ubicacion_memoria=libre->inicio;
-		actualizar_memory_compactada(unSegmento->tamanio,&libre);
-		t_bloque_libre *libre1=list_get(lista_de_bloquesLibres,0);
-		t_bloque_libre *libre2=list_get(lista_de_bloquesLibres,1);
+		t_bloque_libre *libre1=list_get(lista_de_bloquesLibres,contador);
+		t_bloque_libre *libre2=list_get(lista_de_bloquesLibres,contador+1);
 
 		if(libre1->inicio+libre1->tamanio==libre2->inicio)
 			libre2->inicio=libre1->inicio;
 			libre2->tamanio=libre1->tamanio+libre2->tamanio;
 			eliminar_bloque_libre();
+	}
+	else{
+		char* aux=malloc(unSegmento->tamanio);
+		aux=puntero1;
+		memcpy(aux,puntero1,unSegmento->tamanio);
+		memcpy(libre->inicio,aux,unSegmento->tamanio);
+		unSegmento->ubicacion_memoria=libre->inicio;
+
+		t_bloque_libre *libre1=list_get(lista_de_bloquesLibres,contador);
+		t_bloque_libre *libre2=list_get(lista_de_bloquesLibres,contador+1);
+
+				if(libre1->inicio+libre1->tamanio==libre2->inicio)
+					libre2->inicio=libre1->inicio;
+					libre2->tamanio=libre1->tamanio+libre2->tamanio;
+					eliminar_bloque_libre(contador);
+					cantidad=list_size(lista_de_bloquesLibres);
+	}
 
 	printf("Despues de la compactacion el bloque tiene direccion %p \n",libre->inicio);
 	printf("Despues de la compactacion la ubicacion del segmento es: %p\n",unSegmento->ubicacion_memoria);
-
+contador++;
 	}
 
-void eliminar_bloque_libre(){
-	list_remove_and_destroy_element(lista_de_bloquesLibres, 0, (void*)elimino_bloque);
+}
+
+//---------FIN COMPACTACION-------------
+
+void eliminar_bloque_libre(int contador){
+	list_remove_and_destroy_element(lista_de_bloquesLibres, contador, (void*)elimino_bloque);
 
 }
 
 void elimino_bloque(t_bloque_libre *bloque){
 	free(bloque);
 }
-
-
 
 //Creo una lista compuesta por todos los Id's del diccionario
 void hago_lista_con_ids(){
@@ -451,6 +486,34 @@ int es_puntero_de_segmento(t_segmento *segmento){
 	return (segmento->ubicacion_memoria==puntero);
 }
 
+//Se actualizan los bloques libres, para evitar que se busquen direcciones que estan libres
+void actualizar_bloques_libres(){
+	int contador=0;
+	int cantidad=list_size(lista_de_bloquesLibres);
+	while(contador<cantidad){
+		if((cantidad-contador)==1){
+				t_bloque_libre *libre1=list_get(lista_de_bloquesLibres,contador-1);
+				t_bloque_libre *libre2=list_get(lista_de_bloquesLibres,contador);
+				if(libre1->inicio+libre1->tamanio==libre2->inicio){
+								libre2->inicio=libre1->inicio;
+								libre2->tamanio=libre1->tamanio+libre2->tamanio;
+								eliminar_bloque_libre(contador);
+								cantidad=list_size(lista_de_bloquesLibres);
+								contador=0;}
+									else contador++;}
+				else
+					{t_bloque_libre *libre1=list_get(lista_de_bloquesLibres,contador);
+					t_bloque_libre *libre2=list_get(lista_de_bloquesLibres,contador+1);
+					if(libre1->inicio+libre1->tamanio==libre2->inicio){
+									libre2->inicio=libre1->inicio;
+									libre2->tamanio=libre1->tamanio+libre2->tamanio;
+									eliminar_bloque_libre(contador);
+									cantidad=list_size(lista_de_bloquesLibres);
+									contador=0;}
+										else contador++;}
+
+	}
+}
 
 
 
