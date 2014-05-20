@@ -43,6 +43,7 @@
 									<listOptionValue builtIn="false" value="utilidades"/>
 									<listOptionValue builtIn="false" value="pthread"/>
 									<listOptionValue builtIn="false" value="commons"/>
+									<listOptionValue builtIn="false" srcPrefixMapping="" srcRootPath="" value="parser-ansisop"/>
 								</option>
 								<option id="gnu.c.link.option.ldflags.765939369" name="Linker flags" superClass="gnu.c.link.option.ldflags" value="" valueType="string"/>
 								<option id="gnu.c.link.option.other.1984895339" name="Other options (-Xlinker [option])" superClass="gnu.c.link.option.other" valueType="stringList">

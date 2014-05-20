@@ -16,51 +16,41 @@
 
 #define BUFF_SIZE 1000 //Tamaño del buffer de datos que se transfieren entre procesos
 
+#define ENVIO_PROGRAMA 1
+#define PROGRAMA_TERMINADO 2
+#define PROGRAMA_BLOQUEADO 3
+#define PROGRAMA_ABORTADO 4
+
 //Definicion de funciones
 int enviarScript();
 void levantarArchivoPrograma();
 void levantarPrograma();
 
 //Variables globales
-char *string, ipKernel[20], *direccion, script[100], programa[1000];
+char *string, ipKernel[20], direccion[100], *programa;
 int puertoKernel;
+Msg mensaje;
+t_config *archivoConf;
 
 //INICIO
 int main(int argc, char* argv[]) {
 	//Se lee la direccion del archivo y se lo asigna a la variable direccion
-	direccion=(char*)malloc(sizeof(char)*100);
-	strcpy(direccion,argv[2]);
+	strcpy(direccion,argv[1]);
 	string=(char*)malloc(sizeof(char)*100);
+	programa=(char*)malloc(sizeof(char)*100);
 	levantarArchivoPrograma();//Levanto el archivo programa
 	levantarPrograma();
 	enviarScript();
+	free(string);
 	return 0;
 }
 
 //Levanta el archivo de configuracion
 void levantarArchivoPrograma(){
-	t_config *archivoConf;
 	archivoConf=config_create(direccion);
 	string=config_get_string_value(archivoConf,"ip_kernel");
 	strcpy(ipKernel,string);
 	puertoKernel=config_get_int_value(archivoConf,"puerto_kernel");
-	string=config_get_string_value(archivoConf,"script");
-	strcpy(script,string);
-	config_destroy(archivoConf);
-}
-
-void levantarPrograma(){
-	char caracter;
-	int i=0;
-	FILE *Archivo;
-	Archivo= fopen(script, "r"); /*Abrir archivo para lectura*/
-    if(Archivo == NULL){
-	   printf("Error al abrir el archivo \n");
-	   exit (EXIT_FAILURE);}
-    while((caracter=fgetc(Archivo))!=EOF)
-		programa[i++]=caracter;
-    programa[i]='\0';
-    fclose(Archivo);
 }
 //Envia el script al kernel
 int enviarScript(){
@@ -93,17 +83,51 @@ int enviarScript(){
 	printf("Conectado al kernel!\n");
 
 	strcpy(buffer,programa);
+	free(programa);
     //Le mando el programa al kernel
 		if (send(unSocket, buffer, strlen(buffer), 0) >= 0)
 			printf("Datos enviados al kernel!\nEsperando respuesta...\n");
 		else
 			perror("Error al enviar datos. Kernel no encontrado.\n");
 
-		if ((nbytesRecibidos = recv(unSocket, buffer, BUFF_SIZE,0))== 0)
+		while(1){
+		 if ((nbytesRecibidos = recv(unSocket, buffer, BUFF_SIZE,0))== 0){
 			perror("Error al recibir datos. Kernel no disponible");
-		else{
+			return EXIT_FAILURE;}
+		 else{
 			buffer[nbytesRecibidos]='\0';
-			return EXIT_SUCCESS;}
+			mensaje=desempaquetarMensaje(buffer);
+			switch(mensaje.id){
+			case PROGRAMA_ABORTADO:{
+			    printf("El programa fue abortado\n");
+			    return EXIT_FAILURE;
+			    break;}
+			case PROGRAMA_TERMINADO:{
+			    printf("El programa fue terminado\n");
+			    return EXIT_SUCCESS;
+				break;}
+			}
+		  }
+	   }
 }
-
+void levantarPrograma(){
+	char caracter;
+	int i=0, tamArchivo;
+	tamArchivo=pesoArchivo(direccion);
+	programa=(char*)realloc(programa,sizeof(char)*tamArchivo);
+	FILE *Archivo;
+	Archivo= fopen(direccion, "r");
+    if(Archivo == NULL){
+	   printf("Error al abrir el archivo \n");
+	   exit (EXIT_FAILURE);}
+    for(i=0;i!=3;i++){
+        fgetc(Archivo);
+        while(fgetc(Archivo)!='\n');}
+    i=0;
+    while((caracter=fgetc(Archivo))!=EOF)
+		programa[i++]=caracter;
+    programa[i]='\0';
+    fclose(Archivo);
+    config_destroy(archivoConf);
+}
 

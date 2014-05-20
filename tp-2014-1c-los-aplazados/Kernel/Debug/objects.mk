@@ -4,5 +4,5 @@
 
 USER_OBJS :=
 
-LIBS := -lutilidades -lpthread -lcommons
+LIBS := -lutilidades -lpthread -lcommons -lparser-ansisop
 
