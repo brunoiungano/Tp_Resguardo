@@ -174,7 +174,11 @@ crear_segmento("10",15);
 
 printf("Se destruye segmento 12\n");
 destruir_segmentos_de_programa("12");
-crear_segmento("10",3);
+crear_segmento("12",10);
+crear_segmento("18",30);
+crear_segmento("12",20);
+
+
 hago_lista_con_ids();
 int cantidad_libertad=list_size(lista_de_id);
 while(pruebita<cantidad_libertad){
@@ -422,8 +426,8 @@ void compactar_memoria(){
 	puntero=memoria_principal;
 	int contador=0;
 	int flag=0;
-
-	actualizar_bloques_libres();//actualizo bloques, para juntar aquellos que sus direcciones son contiguas
+	if(list_size(lista_de_bloquesLibres)>1){
+		actualizar_bloques_libres();}//actualizo bloques, para juntar aquellos que sus direcciones son contiguas
 
 	printf("tamaño de bloques %d\n",list_size(lista_de_bloquesLibres));
 
