@@ -123,6 +123,14 @@ void eliminar_bloques_libres_vacios();
 
 int _es_bloque_vacio(t_bloque_libre *);
 
+//void actualizar_bloques_libres1(); //prueba
+
+//void juntar_bloques(t_bloque_libre*);//prueba
+
+//int _es_bloque_juntable(t_bloque_libre*);
+
+
+
 
 
 t_dictionary *dictionary;
@@ -140,6 +148,8 @@ char* direccion1;
 char *string, algortimo_de_ubicacion[20];
 char*puntero;
 char* inicio_en_tabla;
+//char* inicio_bloque;
+//int tamanio_bloque_libre;
 
 //-----------------------Prueba del main-----------------------------------
 int main(){
@@ -175,8 +185,18 @@ crear_segmento("10",15);
 printf("Se destruye segmento 12\n");
 destruir_segmentos_de_programa("12");
 crear_segmento("12",10);
-crear_segmento("18",30);
+crear_segmento("13",30);
 crear_segmento("12",20);
+crear_segmento("18",30);
+crear_segmento("18",40);
+destruir_segmentos_de_programa("18");
+crear_segmento("12",20);
+crear_segmento("12",30);
+
+
+
+
+
 
 
 hago_lista_con_ids();
@@ -263,6 +283,7 @@ int validacion_en_memoria(int cantidad,t_list *lista_de_bloques){
 
  t_list *sacar_elemento_de_diccionario(char *id){
 	 t_list *aux = dictionary_get(dictionary, id);
+	 printf("Tamaño de lista: %d",list_size(aux));
 	 return aux;
  }
 
@@ -306,6 +327,7 @@ int crear_segmento(char *id,int tamanio_de_segmento){
 			nuevoSegmento.tamanio=tamanio;
 			nuevoSegmento.ubicacion_memoria=colocar_en_memoria_FirstFit(tamanio);
 			direccion1=nuevoSegmento.ubicacion_memoria;
+			eliminar_bloques_libres_vacios();
 			t_bloque_libre *obtenido=buscar_bloque_en_lista();
 			actualizar_memory(tamanio,&obtenido);
 			printf("El inicio del bloque es: %p \n",nuevoSegmento.inicio);
@@ -320,6 +342,7 @@ int crear_segmento(char *id,int tamanio_de_segmento){
 			nuevoSegmento.ubicacion_memoria=colocar_en_memoria_FirstFit(tamanio);
 			direccion1=nuevoSegmento.ubicacion_memoria;
 			t_bloque_libre *obtenido=buscar_bloque_en_lista();
+			eliminar_bloques_libres_vacios();
 			actualizar_memory(tamanio,&obtenido);
 			printf("El inicio del bloque es: %p \n",nuevoSegmento.inicio);
 			printf("Ubicacion del segmento %p\n",nuevoSegmento.ubicacion_memoria);
@@ -426,13 +449,13 @@ void compactar_memoria(){
 	puntero=memoria_principal;
 	int contador=0;
 	int flag=0;
+	int pruebita=0;
 	if(list_size(lista_de_bloquesLibres)>1){
 		actualizar_bloques_libres();}//actualizo bloques, para juntar aquellos que sus direcciones son contiguas
 
 	printf("tamaño de bloques %d\n",list_size(lista_de_bloquesLibres));
 
 	while(flag==0){
-
 		t_bloque_libre *libre=list_get(lista_de_bloquesLibres,contador);
 		printf("La direccion del bloque libre %p \n",libre->inicio);
 		puntero=(libre->inicio+libre->tamanio);
@@ -456,7 +479,13 @@ void compactar_memoria(){
 			}//Aclaro que contador solo se aumenta en alguna ocasiones. porque?
 						//Porque sino me va a saltear un bloque libre al que le siguen mas de un segmento
 	printf("Despues de la compactacion la ubicacion del segmento es: %p\n",unSegmento->ubicacion_memoria);
+	int cantidad_libertad=list_size(lista_de_id);
+	while(pruebita<cantidad_libertad){
+		t_id *ident=list_get(lista_de_id,pruebita);
+		printf("Identificados %s\n",ident->id);
+		pruebita++;
 	}
+		}
 		else{
 			char* aux=malloc(unSegmento->tamanio);
 			aux=puntero1;
@@ -481,6 +510,13 @@ void compactar_memoria(){
 					}//Aclaro que contador solo se aumenta en alguna ocasiones. porque?
 				//Porque sino me va a saltear un bloque libre al que le siguen mas de un segmento
 		printf("Despues de la compactacion la ubicacion del segmento es: %p\n",unSegmento->ubicacion_memoria);
+		int cantidad_libertad=list_size(lista_de_id);
+		while(pruebita<cantidad_libertad){
+			t_id *ident=list_get(lista_de_id,pruebita);
+			printf("Identificados %s\n",ident->id);
+			pruebita++;
+		}
+
 	}
 	}
 	else {printf("Ya se realizo la compactacion\n");
@@ -552,7 +588,7 @@ int es_puntero_de_segmento(t_segmento *segmento){
 void actualizar_bloques_libres(){
 	int contador=0;
 	int cantidad=list_size(lista_de_bloquesLibres);
-	while(contador<cantidad){
+	while(contador<cantidad && cantidad>1){
 		if((cantidad-contador)==1){
 				t_bloque_libre *libre1=list_get(lista_de_bloquesLibres,contador-1);
 				t_bloque_libre *libre2=list_get(lista_de_bloquesLibres,contador);
@@ -577,5 +613,27 @@ void actualizar_bloques_libres(){
 	}
 }
 
+
+/*
+void actualizar_bloques_libres1(){
+	list_iterate(lista_de_bloquesLibres,(void*)juntar_bloques);
+}
+
+void juntar_bloques(t_bloque_libre* bloque){
+	inicio_bloque=bloque->inicio;
+	tamanio_bloque_libre=bloque->tamanio;
+	t_bloque_libre* obtenido=list_find(lista_de_bloquesLibres,(void*)_es_bloque_juntable);
+	if(obtenido!=NULL){
+		obtenido->inicio=bloque->inicio;
+		obtenido->tamanio=obtenido->tamanio+bloque->tamanio;
+		free(bloque);
+
+	}
+}
+
+int _es_bloque_juntable(t_bloque_libre* bloque){
+	return ((inicio_bloque+tamanio_bloque_libre)==bloque->inicio);
+}
+*/
 
 
