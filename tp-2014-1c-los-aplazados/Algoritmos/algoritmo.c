@@ -73,7 +73,6 @@ void segments_destroy(t_list *);
 
 t_segmento *segmento_create(t_segmento );
 
-int determinar_direccion_logica(t_list *);
 
 t_bloque_libre *bloque_create(t_bloque_libre );
 
@@ -83,7 +82,6 @@ void actualizar_memory(int ,t_bloque_libre **);
 
 void imprimir_estado_memory(t_bloque_libre *);
 
-int _es_bloque_accesible(t_bloque_libre *);
 
 char *colocar_en_memoria_FirstFit(int);
 
@@ -92,8 +90,6 @@ char *colocar_en_memoria_WorstFit(int);
 int _bloques_mayor_a_menor(t_bloque_libre *, t_bloque_libre *);
 
 int _bloques_ordenados_por_direccion(t_bloque_libre *, t_bloque_libre *);
-
-int _es_mismo_bloque(t_bloque_libre*);
 
 t_bloque_libre *buscar_bloque_en_lista();
 
@@ -104,8 +100,6 @@ t_id *idEnList_create(t_id);
 t_segmento* buscar_id_segun_posicion();
 
 void _agregar_a_lista(char* );
-
-int es_puntero_de_segmento(t_segmento *);
 
 void hago_lista_con_ids();
 
@@ -138,15 +132,13 @@ t_list *lista_de_bloquesLibres;
 t_list* lista_de_id;
 
 //Variables globales, TENER CUIDADO CON SU MANEJO
-char ID[4];
+
 int variable=1000;
 void* memoria_principal;
 char* manejador;
-int tamanio;
 char* direccion;
-char* direccion1;
-char *string, algortimo_de_ubicacion[20];
-char*puntero;
+char *string, algoritmo_de_ubicacion[20];
+
 char* inicio_en_tabla;
 //char* inicio_bloque;
 //int tamanio_bloque_libre;
@@ -185,14 +177,9 @@ crear_segmento("10",15);
 printf("Se destruye segmento 12\n");
 destruir_segmentos_de_programa("12");
 crear_segmento("12",10);
-crear_segmento("13",30);
-crear_segmento("12",20);
-crear_segmento("18",30);
-crear_segmento("18",40);
-destruir_segmentos_de_programa("18");
-crear_segmento("12",20);
-crear_segmento("12",30);
-
+crear_segmento("12",40); /*Cuando creo este segmento se me genera el problema del segmentation fault,
+ahora si no pongo este crear segmento el programa hace lo que quiero*/
+crear_segmento("11",80);
 
 
 
@@ -282,8 +269,8 @@ int validacion_en_memoria(int cantidad,t_list *lista_de_bloques){
  //Saco elemento de diccionario
 
  t_list *sacar_elemento_de_diccionario(char *id){
-	 t_list *aux = dictionary_get(dictionary, id);
-	 printf("Tamaño de lista: %d",list_size(aux));
+
+	 t_list * aux = dictionary_get(dictionary, id);
 	 return aux;
  }
 
@@ -315,10 +302,9 @@ void segments_destroy(t_list *list){
 }
 
 //Creo segmento,le paso como parametro el ID del programa y el tamaño del segmento
-int crear_segmento(char *id,int tamanio_de_segmento){
+int crear_segmento(char *id,int tamanio){
 	t_segmento nuevoSegmento;
 	t_list  *list;
-	tamanio=tamanio_de_segmento;
 	if(validacion_en_memoria(tamanio,lista_de_bloquesLibres)){
 
 		if(dictionary_has_key(dictionary,id)){
@@ -326,9 +312,8 @@ int crear_segmento(char *id,int tamanio_de_segmento){
 			nuevoSegmento.inicio=inicio_en_tabla;
 			nuevoSegmento.tamanio=tamanio;
 			nuevoSegmento.ubicacion_memoria=colocar_en_memoria_FirstFit(tamanio);
-			direccion1=nuevoSegmento.ubicacion_memoria;
 			eliminar_bloques_libres_vacios();
-			t_bloque_libre *obtenido=buscar_bloque_en_lista();
+			t_bloque_libre *obtenido=buscar_bloque_en_lista(nuevoSegmento.ubicacion_memoria);
 			actualizar_memory(tamanio,&obtenido);
 			printf("El inicio del bloque es: %p \n",nuevoSegmento.inicio);
 			printf("Ubicacion del segmento %p\n",nuevoSegmento.ubicacion_memoria);
@@ -340,8 +325,7 @@ int crear_segmento(char *id,int tamanio_de_segmento){
 			nuevoSegmento.inicio=inicio_en_tabla;
 			nuevoSegmento.tamanio=tamanio;
 			nuevoSegmento.ubicacion_memoria=colocar_en_memoria_FirstFit(tamanio);
-			direccion1=nuevoSegmento.ubicacion_memoria;
-			t_bloque_libre *obtenido=buscar_bloque_en_lista();
+			t_bloque_libre *obtenido=buscar_bloque_en_lista(nuevoSegmento.ubicacion_memoria);
 			eliminar_bloques_libres_vacios();
 			actualizar_memory(tamanio,&obtenido);
 			printf("El inicio del bloque es: %p \n",nuevoSegmento.inicio);
@@ -372,16 +356,6 @@ int crear_segmento(char *id,int tamanio_de_segmento){
 	return new;
 }
 
-
-//Criterio a tomar para determinar el inicio de mi segmento en la tabla de segmentos
-int determinar_direccion_logica(t_list *lista){
-	int maximo;
-	int elementos_en_lista=list_size(lista);
-	t_segmento *ultimo_segmento=list_get(lista,elementos_en_lista-1);
-	maximo=(ultimo_segmento->inicio + ultimo_segmento->tamanio)+1;
-	return maximo;
-}
-
 t_bloque_libre *bloque_create(t_bloque_libre bloque){
 	t_bloque_libre *new = malloc( sizeof(t_bloque_libre) );
 	new->inicio =manejador;
@@ -394,16 +368,24 @@ t_id *idEnList_create(t_id id){
 	strcpy(new->id,id.id);
 	return new;
 }
+
 //Retorno la direccion de memoria segun el Algoritmo First Fit
-char *colocar_en_memoria_FirstFit(tamanio){
+char *colocar_en_memoria_FirstFit(int tamanio1){
 list_sort(lista_de_bloquesLibres,(void*)_bloques_ordenados_por_direccion);
+
+	int _es_bloque_accesible(t_bloque_libre *bloque){ //Condicin es bloque acesible, evalua si el tamaño del segmento es menor que el tamaño libre
+	return (tamanio1<=bloque->tamanio);
+	}
 t_bloque_libre *obtenido=list_find(lista_de_bloquesLibres,(void*)_es_bloque_accesible);
 return obtenido->inicio;
 }
 
 //Retorno la direccion de memoria segun el Algoritmo Worst Fit
-char *colocar_en_memoria_WorstFit(tamanio){
+char *colocar_en_memoria_WorstFit(int tamanio1){
 	list_sort(lista_de_bloquesLibres,(void*)_bloques_mayor_a_menor);
+	int _es_bloque_accesible(t_bloque_libre *bloque){ //Condicin es bloque acesible, evalua si el tamaño del segmento es menor que el tamaño libre
+		return (tamanio1<=bloque->tamanio);
+	}
 	t_bloque_libre *obtenido=list_find(lista_de_bloquesLibres,(void*)_es_bloque_accesible);
 	return obtenido->inicio;
 }
@@ -412,10 +394,8 @@ int _bloques_mayor_a_menor(t_bloque_libre *libre, t_bloque_libre *libre2) {
 		return libre->tamanio > libre2->tamanio;
 	}
 
-//Condicin es bloque acesible, evalua si el tamaño del segmento es menor que el tamaño libre
-int _es_bloque_accesible(t_bloque_libre *bloque){
-	return (tamanio<=bloque->tamanio);
-}
+
+
 
 //Condicion para ordenar la lista de bloques libres por direccion de memoria
 int _bloques_ordenados_por_direccion(t_bloque_libre *libre, t_bloque_libre *libre1) {
@@ -424,32 +404,29 @@ int _bloques_ordenados_por_direccion(t_bloque_libre *libre, t_bloque_libre *libr
 
 
 //Hago esta funcion para que el actualizar memory solo me actualice el bloque de memoria libre correspondiente
-t_bloque_libre *buscar_bloque_en_lista(){
+t_bloque_libre *buscar_bloque_en_lista(char* direccion1){
+	int _es_mismo_bloque(t_bloque_libre* bloque){
+		return bloque->inicio==direccion1;
+
+	}
 	t_bloque_libre *bloqueFree=list_find(lista_de_bloquesLibres,(void*)_es_mismo_bloque);
 	return bloqueFree;
 	}
-
-//Condicion de t_bloque_libre *buscar_bloque_en_lista() para que me encuentre el bloque con dicha direccion
-int _es_mismo_bloque(t_bloque_libre* bloque){
-	return bloque->inicio==direccion1;
-
-}
 
 //Levanta el archivo de configuracion
 void levantarArchivoKernel(){
 	t_config *archivoConf;
 	archivoConf=config_create(direccion);
 	string=config_get_string_value(archivoConf,"algoritmo");
-	strcpy(algortimo_de_ubicacion,string);
+	strcpy(algoritmo_de_ubicacion[20],string);
 	config_destroy(archivoConf);
 }
 //----------COMPACTACION--------------------
 //Compactar la memoria principal
 void compactar_memoria(){
-	puntero=memoria_principal;
+	char*puntero=memoria_principal;
 	int contador=0;
 	int flag=0;
-	int pruebita=0;
 	if(list_size(lista_de_bloquesLibres)>1){
 		actualizar_bloques_libres();}//actualizo bloques, para juntar aquellos que sus direcciones son contiguas
 
@@ -459,9 +436,9 @@ void compactar_memoria(){
 		t_bloque_libre *libre=list_get(lista_de_bloquesLibres,contador);
 		printf("La direccion del bloque libre %p \n",libre->inicio);
 		puntero=(libre->inicio+libre->tamanio);
-		printf("La suma del tamaño del bloque libre y el puntero es %p \n",puntero);
-		if(buscar_id_segun_posicion()!=NULL){//pregunto si la direccion de memoria la encuentra
-			t_segmento *unSegmento=buscar_id_segun_posicion();
+		printf("La suma del tamaño %d del bloque libre y el puntero es %p \n",libre->tamanio,puntero);
+		if(buscar_id_segun_posicion(puntero)!=NULL){//pregunto si la direccion de memoria la encuentra
+			t_segmento *unSegmento=buscar_id_segun_posicion(puntero);
 			printf("El segmento que sigue a ese bloque esta ubicado en la direccion%p\n",unSegmento->ubicacion_memoria);
 			char*puntero1=malloc(unSegmento->tamanio);
 			puntero1=unSegmento->ubicacion_memoria;
@@ -479,44 +456,25 @@ void compactar_memoria(){
 			}//Aclaro que contador solo se aumenta en alguna ocasiones. porque?
 						//Porque sino me va a saltear un bloque libre al que le siguen mas de un segmento
 	printf("Despues de la compactacion la ubicacion del segmento es: %p\n",unSegmento->ubicacion_memoria);
-	int cantidad_libertad=list_size(lista_de_id);
-	while(pruebita<cantidad_libertad){
-		t_id *ident=list_get(lista_de_id,pruebita);
-		printf("Identificados %s\n",ident->id);
-		pruebita++;
-	}
 		}
 		else{
-			char* aux=malloc(unSegmento->tamanio);
-			aux=puntero1;
-			memcpy(aux,puntero1,unSegmento->tamanio);
-			memcpy(libre->inicio,aux,unSegmento->tamanio);
+			char* aux1=malloc(unSegmento->tamanio);
+			aux1=puntero1;
+			memcpy(aux1,puntero1,unSegmento->tamanio);
+			memcpy(libre->inicio,aux1,unSegmento->tamanio);
 			unSegmento->ubicacion_memoria=libre->inicio;
-			printf("Prueba %p\n",unSegmento->ubicacion_memoria);
 			libre->inicio=libre->inicio+unSegmento->tamanio;
-			printf("Prueba %p\n",libre->inicio);
-			printf("L %p \n",libre->inicio);
 			t_bloque_libre *libre2=list_get(lista_de_bloquesLibres,contador+1);
-			printf("L %p \n",libre2->inicio);
 			printf("tamaño de bloques %d\n",list_size(lista_de_bloquesLibres));
 				if(libre->inicio+libre->tamanio==libre2->inicio){
 					libre2->inicio=libre->inicio;
 					libre2->tamanio=libre->tamanio+libre2->tamanio;
-					printf("L %p \n",libre2->inicio);
 					eliminar_bloque_libre(contador);
 					printf("tamaño de bloques %d\n",list_size(lista_de_bloquesLibres));
-					printf("L %p \n",libre2->inicio);
 
 					}//Aclaro que contador solo se aumenta en alguna ocasiones. porque?
 				//Porque sino me va a saltear un bloque libre al que le siguen mas de un segmento
 		printf("Despues de la compactacion la ubicacion del segmento es: %p\n",unSegmento->ubicacion_memoria);
-		int cantidad_libertad=list_size(lista_de_id);
-		while(pruebita<cantidad_libertad){
-			t_id *ident=list_get(lista_de_id,pruebita);
-			printf("Identificados %s\n",ident->id);
-			pruebita++;
-		}
-
 	}
 	}
 	else {printf("Ya se realizo la compactacion\n");
@@ -560,7 +518,7 @@ void _agregar_a_lista(char* key){
 		list_add(lista_de_id,key);
 }
 
-t_segmento *buscar_id_segun_posicion(){
+t_segmento *buscar_id_segun_posicion(char*puntero){
 	int i=0;
 	int encontrado=0;
 	t_segmento* segmento;
@@ -568,6 +526,9 @@ t_segmento *buscar_id_segun_posicion(){
 	while(encontrado==0 && i<cant ){
 		t_id* identificador=list_get(lista_de_id,i);
 		t_list* lista=sacar_elemento_de_diccionario(identificador->id);
+		int es_puntero_de_segmento(t_segmento *segmento){
+			return (segmento->ubicacion_memoria==puntero);
+		}
 		segmento=list_find(lista,(void*)es_puntero_de_segmento);
 		if(segmento!=NULL){
 				encontrado=1;
@@ -579,10 +540,6 @@ t_segmento *buscar_id_segun_posicion(){
 	else return NULL;
 }
 
-//Condicion de que la ubicacion en memoria de un segmento es igual al puntero que se busca
-int es_puntero_de_segmento(t_segmento *segmento){
-	return (segmento->ubicacion_memoria==puntero);
-}
 
 //Se actualizan los bloques libres, para evitar que se busquen direcciones que estan libres
 void actualizar_bloques_libres(){
