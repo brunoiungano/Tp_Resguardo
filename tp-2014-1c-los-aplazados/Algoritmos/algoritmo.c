@@ -57,11 +57,9 @@ struct idEnLista{
 	char id[6];
 };
 
-
 void poner_segmento_en_diccionario(t_list *,char *);
 
 t_list *sacar_elemento_de_diccionario(char *);
-
 
 void destruir_segmentos_de_programa(char *);
 
@@ -69,10 +67,9 @@ int crear_segmento(char *,int);
 
 void segments_destroy(t_list *);
 
- void destruir_un_segmento(t_segmento*);
+void destruir_un_segmento(t_segmento*);
 
 t_segmento *segmento_create(t_segmento );
-
 
 t_bloque_libre *bloque_create(t_bloque_libre );
 
@@ -81,7 +78,6 @@ int validacion_en_memoria(int ,t_list *);
 void actualizar_memory(int ,t_bloque_libre **);
 
 void imprimir_estado_memory(t_bloque_libre *);
-
 
 char *colocar_en_memoria_FirstFit(int);
 
@@ -117,6 +113,12 @@ void eliminar_bloques_libres_vacios();
 
 int _es_bloque_vacio(t_bloque_libre *);
 
+t_segmento *buscar_id_segun_base(char*);
+
+void escribir_bytes(char*,int,int ,char []);
+
+char *leer_bytes(char*,int,int);
+
 //void actualizar_bloques_libres1(); //prueba
 
 //void juntar_bloques(t_bloque_libre*);//prueba
@@ -138,7 +140,6 @@ void* memoria_principal;
 char* manejador;
 char* direccion;
 char *string, algoritmo_de_ubicacion[20];
-
 char* inicio_en_tabla;
 //char* inicio_bloque;
 //int tamanio_bloque_libre;
@@ -148,12 +149,13 @@ int main(){
 
 //Declaramos los punteros, memoria_principal es el "gran malloc", el manejador es para recorrer dicho malloc, y el resguardo es para
 //no perder el puntero a la memoria prncipal;
-memoria_principal=malloc(100);
+memoria_principal=malloc(1000);
 manejador=memoria_principal;
 inicio_en_tabla=manejador;
 int b=0;
 int z=0;
 int pruebita=0;
+char *prueba;
 
 
 t_bloque_libre bloqueLibre;
@@ -177,9 +179,24 @@ crear_segmento("10",15);
 printf("Se destruye segmento 12\n");
 destruir_segmentos_de_programa("12");
 crear_segmento("12",10);
-crear_segmento("12",40); /*Cuando creo este segmento se me genera el problema del segmentation fault,
-ahora si no pongo este crear segmento el programa hace lo que quiero*/
-crear_segmento("11",80);
+crear_segmento("12",40);
+crear_segmento("13",40);
+crear_segmento("18",40);
+crear_segmento("12",10);
+crear_segmento("50",40);
+crear_segmento("50",40);
+crear_segmento("50",40);
+crear_segmento("12",10);
+crear_segmento("12",40);
+crear_segmento("50",40);
+crear_segmento("18",40);
+crear_segmento("12",10);
+crear_segmento("44",40);
+crear_segmento("13",40);
+crear_segmento("23",40);
+destruir_segmentos_de_programa("12");
+destruir_segmentos_de_programa("18");
+destruir_segmentos_de_programa("50");
 
 
 
@@ -383,7 +400,7 @@ return obtenido->inicio;
 //Retorno la direccion de memoria segun el Algoritmo Worst Fit
 char *colocar_en_memoria_WorstFit(int tamanio1){
 	list_sort(lista_de_bloquesLibres,(void*)_bloques_mayor_a_menor);
-	int _es_bloque_accesible(t_bloque_libre *bloque){ //Condicin es bloque acesible, evalua si el tamaño del segmento es menor que el tamaño libre
+	int _es_bloque_accesible(t_bloque_libre *bloque){ //Condicion es bloque acesible, evalua si el tamaño del segmento es menor que el tamaño libre
 		return (tamanio1<=bloque->tamanio);
 	}
 	t_bloque_libre *obtenido=list_find(lista_de_bloquesLibres,(void*)_es_bloque_accesible);
@@ -570,7 +587,46 @@ void actualizar_bloques_libres(){
 	}
 }
 
+char *leer_bytes(char* base,int offset,int cantidad){
+	char*puntero=memoria_principal;
+	char*segmento_leido=malloc(cantidad);
+	t_segmento *segmento;
+	segmento=buscar_id_segun_base(base);
+	puntero=segmento->ubicacion_memoria+offset;
+	memcpy(segmento_leido,puntero,cantidad);
+	return segmento_leido;
+}
+void escribir_bytes(char*base,int offset,int cantidad,char palabra[]){
+	char*puntero=memoria_principal;
+	t_segmento *segmento;
+	segmento=buscar_id_segun_base(base);
+	puntero=segmento->ubicacion_memoria+offset;
+	memcpy(puntero,palabra,cantidad);
 
+}
+
+
+t_segmento *buscar_id_segun_base(char*base){
+	int i=0;
+	int encontrado=0;
+	t_segmento* segmento;
+	int cant=list_size(lista_de_id);
+	while(encontrado==0 && i<cant ){
+		t_id* identificador=list_get(lista_de_id,i);
+		t_list* lista=sacar_elemento_de_diccionario(identificador->id);
+		int es_base_de_segmento(t_segmento *segmento){
+			return (segmento->ubicacion_memoria==base);
+		}
+		segmento=list_find(lista,(void*)es_base_de_segmento);
+		if(segmento!=NULL){
+				encontrado=1;
+			}
+		else i++;
+		}
+	if(encontrado!=0)
+		return segmento;
+	else return NULL;
+}
 /*
 void actualizar_bloques_libres1(){
 	list_iterate(lista_de_bloquesLibres,(void*)juntar_bloques);
