@@ -73,7 +73,7 @@ t_segmento *segmento_create(t_segmento );
 
 t_bloque_libre *bloque_create(t_bloque_libre );
 
-int validacion_en_memoria(int ,t_list *);
+//int validacion_en_memoria(int ,t_list *);
 
 void actualizar_memory(int ,t_bloque_libre **);
 
@@ -100,8 +100,6 @@ void _agregar_a_lista(char* );
 void hago_lista_con_ids();
 
 void compactar_memoria();
-
-void actualizar_memory_compactada(int,t_bloque_libre **);
 
 void elimino_bloque(t_bloque_libre *bloque);
 
@@ -258,18 +256,12 @@ void actualizar_memory(int cantidad,t_bloque_libre **puntero){
 	ptr->tamanio=(ptr->tamanio-cantidad);
 }
 
-void actualizar_memory_compactada(int cantidad,t_bloque_libre **puntero){
-	t_bloque_libre *ptr;
-	ptr=*puntero;
-	ptr->inicio=(ptr->inicio+(sizeof(char)*cantidad));
-}
-
 void imprimir_estado_memory(t_bloque_libre *bloque){
 printf("El inicio del bloque libre es : %p\n",bloque->inicio);
 printf("El tamaño del bloque libre es: %d\n",bloque->tamanio);
 }
 
-int validacion_en_memoria(int cantidad,t_list *lista_de_bloques){
+/*int validacion_en_memoria(int cantidad,t_list *lista_de_bloques){
 	int i=0;
 	int memoria=0;
 	int cantidad_de_bloques=list_size(lista_de_bloques);
@@ -279,13 +271,13 @@ int validacion_en_memoria(int cantidad,t_list *lista_de_bloques){
 		i++;
 	}
 	return (cantidad<=memoria);
-}
+}*/
 
 int hay_algun_bloque_disponible(int cantidad){
 	int _es_bloque_accesible(t_bloque_libre *bloque){ //Condicin es bloque acesible, evalua si el tamaño del segmento es menor que el tamaño libre
 		return (cantidad<=bloque->tamanio);
 		}
-	 return list_any_satisfy(lista_de_bloquesLibres,(void*)_es_bloque_accesible);
+	 return list_any_satisfy(lista_de_bloquesLibres,(void*)_es_bloque_accesible);//Me retorna true si por lo menos hay un bloque libre que permita la creacion de dicho segmento
 
 }
 
@@ -600,19 +592,29 @@ void actualizar_bloques_libres(){
 
 char *leer_bytes(char* base,int offset,int cantidad){
 	char*puntero=memoria_principal;
+	int total=offset+cantidad;
 	char*segmento_leido=malloc(cantidad);
 	t_segmento *segmento;
 	segmento=buscar_segmento_segun_base(base);
-	puntero=segmento->ubicacion_memoria+offset;
-	memcpy(segmento_leido,puntero,cantidad);
-	return segmento_leido;
+	if(offset<segmento->tamanio && cantidad<segmento->tamanio && total<=segmento->tamanio){
+		puntero=segmento->ubicacion_memoria+offset;
+		memcpy(segmento_leido,puntero,cantidad);
+		return segmento_leido;}
+	else{printf("Se desea leer bytes que no pertenecen a este segmento\n");
+		return NULL;
+		}
 }
+
 void escribir_bytes(char*base,int offset,int cantidad,char palabra[]){
+	int total;
 	char*puntero=memoria_principal;
 	t_segmento *segmento;
+	total=offset+cantidad;
 	segmento=buscar_segmento_segun_base(base);
-	puntero=segmento->ubicacion_memoria+offset;
-	memcpy(puntero,palabra,cantidad);
+	if(offset<segmento->tamanio && cantidad<segmento->tamanio && total<=segmento->tamanio){
+		puntero=segmento->ubicacion_memoria+offset;
+		memcpy(puntero,palabra,cantidad);}
+	else { printf("SIGVE:Segmentation Fault,se desea escribir fuera de los rangos permitidos\n");}
 
 }
 
@@ -638,26 +640,5 @@ t_segmento *buscar_segmento_segun_base(char*base){
 		return segmento;
 	else return NULL;
 }
-/*
-void actualizar_bloques_libres1(){
-	list_iterate(lista_de_bloquesLibres,(void*)juntar_bloques);
-}
-
-void juntar_bloques(t_bloque_libre* bloque){
-	inicio_bloque=bloque->inicio;
-	tamanio_bloque_libre=bloque->tamanio;
-	t_bloque_libre* obtenido=list_find(lista_de_bloquesLibres,(void*)_es_bloque_juntable);
-	if(obtenido!=NULL){
-		obtenido->inicio=bloque->inicio;
-		obtenido->tamanio=obtenido->tamanio+bloque->tamanio;
-		free(bloque);
-
-	}
-}
-
-int _es_bloque_juntable(t_bloque_libre* bloque){
-	return ((inicio_bloque+tamanio_bloque_libre)==bloque->inicio);
-}
-*/
 
 
