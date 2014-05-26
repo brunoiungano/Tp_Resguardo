@@ -3,7 +3,6 @@
 	<name>Algoritmos</name>
 	<comment></comment>
 	<projects>
-		<project>commons</project>
 		<project>utilidades</project>
 	</projects>
 	<buildSpec>

@@ -113,11 +113,13 @@ void eliminar_bloques_libres_vacios();
 
 int _es_bloque_vacio(t_bloque_libre *);
 
-t_segmento *buscar_id_segun_base(char*);
+t_segmento *buscar_segmento_segun_base(char*);
 
 void escribir_bytes(char*,int,int ,char []);
 
 char *leer_bytes(char*,int,int);
+
+int hay_algun_bloque_disponible(int cantidad);
 
 //void actualizar_bloques_libres1(); //prueba
 
@@ -155,8 +157,6 @@ inicio_en_tabla=manejador;
 int b=0;
 int z=0;
 int pruebita=0;
-char *prueba;
-
 
 t_bloque_libre bloqueLibre;
 dictionary=dictionary_create();
@@ -197,6 +197,9 @@ crear_segmento("23",40);
 destruir_segmentos_de_programa("12");
 destruir_segmentos_de_programa("18");
 destruir_segmentos_de_programa("50");
+crear_segmento("123",140);
+crear_segmento("200",280);
+
 
 
 
@@ -278,6 +281,14 @@ int validacion_en_memoria(int cantidad,t_list *lista_de_bloques){
 	return (cantidad<=memoria);
 }
 
+int hay_algun_bloque_disponible(int cantidad){
+	int _es_bloque_accesible(t_bloque_libre *bloque){ //Condicin es bloque acesible, evalua si el tamaño del segmento es menor que el tamaño libre
+		return (cantidad<=bloque->tamanio);
+		}
+	 return list_any_satisfy(lista_de_bloquesLibres,(void*)_es_bloque_accesible);
+
+}
+
 
 //Coloco segmento en diccionario
  void poner_segmento_en_diccionario(t_list *list,char *id) {
@@ -322,7 +333,7 @@ void segments_destroy(t_list *list){
 int crear_segmento(char *id,int tamanio){
 	t_segmento nuevoSegmento;
 	t_list  *list;
-	if(validacion_en_memoria(tamanio,lista_de_bloquesLibres)){
+	if(hay_algun_bloque_disponible(tamanio)){
 
 		if(dictionary_has_key(dictionary,id)){
 			list=dictionary_get(dictionary,id);
@@ -591,7 +602,7 @@ char *leer_bytes(char* base,int offset,int cantidad){
 	char*puntero=memoria_principal;
 	char*segmento_leido=malloc(cantidad);
 	t_segmento *segmento;
-	segmento=buscar_id_segun_base(base);
+	segmento=buscar_segmento_segun_base(base);
 	puntero=segmento->ubicacion_memoria+offset;
 	memcpy(segmento_leido,puntero,cantidad);
 	return segmento_leido;
@@ -599,14 +610,14 @@ char *leer_bytes(char* base,int offset,int cantidad){
 void escribir_bytes(char*base,int offset,int cantidad,char palabra[]){
 	char*puntero=memoria_principal;
 	t_segmento *segmento;
-	segmento=buscar_id_segun_base(base);
+	segmento=buscar_segmento_segun_base(base);
 	puntero=segmento->ubicacion_memoria+offset;
 	memcpy(puntero,palabra,cantidad);
 
 }
 
 
-t_segmento *buscar_id_segun_base(char*base){
+t_segmento *buscar_segmento_segun_base(char*base){
 	int i=0;
 	int encontrado=0;
 	t_segmento* segmento;
