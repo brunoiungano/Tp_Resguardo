@@ -166,26 +166,29 @@ t_bloque_libre *obtenido=list_get(lista_de_bloquesLibres,0);
 printf("manejador%p\n",manejador);
 printf("Inicio libre %p\n",obtenido->inicio);
 
-
-crear_segmento("12",10);
-escribir_bytes(inicio_en_tabla,2,6,"Bruno");
-inicio_en_tabla=manejador+11;
-crear_segmento("11",10);
-escribir_bytes(inicio_en_tabla,2,7,"Matias");
-inicio_en_tabla=manejador+22;
-crear_segmento("12",10);
-escribir_bytes(inicio_en_tabla,2,6,"Jose");
+crear_segmento("12",12);
+crear_segmento("12",12);
+crear_segmento("12",12);
+crear_segmento("11",11);
+crear_segmento("11",11);
+crear_segmento("11",11);
+crear_segmento("13",13);
+crear_segmento("12",12);
+crear_segmento("13",13);
+crear_segmento("12",12);
+crear_segmento("13",13);
 destruir_segmentos_de_programa("11");
-printf("SIZE %d \n",list_size(lista_de_id));
-int cantidad_libertad=list_size(lista_de_id);
-while(pruebita<cantidad_libertad){
-	t_id *ident=list_get(lista_de_id,pruebita);
-	printf("Identificados %s\n",ident->id);
-	pruebita++;
-}
+crear_segmento("14",14);
+destruir_segmentos_de_programa("13");
+crear_segmento("13",13);
+crear_segmento("12",12);
+destruir_segmentos_de_programa("13");
+
+
+
 compactar_memoria();
 char* segmentito=leer_bytes(inicio_en_tabla,2,6);
-printf("Despues de la compactacion la palabra es %s \n:",segmentito);
+printf("Despues de la compactacion la palabra es %s\n",segmentito);
 
 printf("Despues DE REALIZAR LA COMPACTACION, LA MEMORIA ESTA ASI \n");
 printf("\n");
@@ -537,6 +540,7 @@ t_segmento *buscar_segmento_segun_posicion(char*puntero){
 void actualizar_bloques_libres(){
 	int contador=0;
 	int cantidad=list_size(lista_de_bloquesLibres);
+	list_sort(lista_de_bloquesLibres,(void*)_bloques_ordenados_por_direccion);
 	while(contador<cantidad && cantidad>1){
 		if((cantidad-contador)==1){
 				t_bloque_libre *libre1=list_get(lista_de_bloquesLibres,contador-1);
