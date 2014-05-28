@@ -91,9 +91,9 @@ t_bloque_libre *buscar_bloque_en_lista();
 
 void levantarArchivoKernel();
 
-t_id *idEnList_create(t_id);
+t_id *idEnList_create(char*);
 
-t_segmento* buscar_id_segun_posicion();
+t_segmento* buscar_segmento_segun_posicion();
 
 void _agregar_a_lista(char* );
 
@@ -168,79 +168,39 @@ printf("Inicio libre %p\n",obtenido->inicio);
 
 
 crear_segmento("12",10);
-crear_segmento("13",30);
-crear_segmento("12",20);
-crear_segmento("12",30);
-crear_segmento("13",5);
-crear_segmento("10",15);
-
-printf("Se destruye segmento 12\n");
-destruir_segmentos_de_programa("12");
+escribir_bytes(inicio_en_tabla,2,6,"Bruno");
+inicio_en_tabla=manejador+11;
+crear_segmento("11",10);
+escribir_bytes(inicio_en_tabla,2,7,"Matias");
+inicio_en_tabla=manejador+22;
 crear_segmento("12",10);
-crear_segmento("12",40);
-crear_segmento("13",40);
-crear_segmento("18",40);
-crear_segmento("12",10);
-crear_segmento("50",40);
-crear_segmento("50",40);
-crear_segmento("50",40);
-crear_segmento("12",10);
-crear_segmento("12",40);
-crear_segmento("50",40);
-crear_segmento("18",40);
-crear_segmento("12",10);
-crear_segmento("44",40);
-crear_segmento("13",40);
-crear_segmento("23",40);
-destruir_segmentos_de_programa("12");
-destruir_segmentos_de_programa("18");
-destruir_segmentos_de_programa("50");
-crear_segmento("123",140);
-crear_segmento("200",280);
-
-
-
-
-
-
-
-hago_lista_con_ids();
+escribir_bytes(inicio_en_tabla,2,6,"Jose");
+destruir_segmentos_de_programa("11");
+printf("SIZE %d \n",list_size(lista_de_id));
 int cantidad_libertad=list_size(lista_de_id);
 while(pruebita<cantidad_libertad){
 	t_id *ident=list_get(lista_de_id,pruebita);
 	printf("Identificados %s\n",ident->id);
 	pruebita++;
 }
+compactar_memoria();
+char* segmentito=leer_bytes(inicio_en_tabla,2,6);
+printf("Despues de la compactacion la palabra es %s \n:",segmentito);
 
-eliminar_bloques_libres_vacios();
-printf("ANTES DE REALIZAR LA COMPACTACION, LA MEMORIA ESTA ASI \n");
+printf("Despues DE REALIZAR LA COMPACTACION, LA MEMORIA ESTA ASI \n");
 printf("\n");
 printf("\n");
 printf("\n");
 printf("El tamaño de la lista de bloques libres es %d\n",list_size(lista_de_bloquesLibres));
 //prueba unitaria para probar si los bloques libres se estan agregando
-list_sort(lista_de_bloquesLibres,(void*)_bloques_ordenados_por_direccion);
+
 while(z<list_size(lista_de_bloquesLibres)){
 	t_bloque_libre* bloque=list_get(lista_de_bloquesLibres,z);
 	printf("El inicio de este bloque libre es %p el fin es %p\n",bloque->inicio,bloque->inicio+((bloque->tamanio)-1));
 	printf("El tamaño de este bloque es %d\n",bloque->tamanio);
 	z++;
 }
-printf("DESPUES DE REALIZAR LA COMPACTACION, LA MEMORIA ESTA ASI \n");
-compactar_memoria();
-printf("\n");
-printf("\n");
-printf("\n");
 
-printf("El tamaño de la lista de bloques libres es %d\n",list_size(lista_de_bloquesLibres));
-//prueba unitaria para probar si los bloques libres se estan agregando
-list_sort(lista_de_bloquesLibres,(void*)_bloques_ordenados_por_direccion);
-while(b<list_size(lista_de_bloquesLibres)){
-	t_bloque_libre* bloque=list_get(lista_de_bloquesLibres,b);
-	printf("El inicio de este bloque libre es %p el fin es %p\n",bloque->inicio,bloque->inicio+bloque->tamanio);
-	printf("El tamaño de este bloque es %d\n",bloque->tamanio);
-	b++;
-}
 
 
 
@@ -305,11 +265,19 @@ t_list* lista=sacar_elemento_de_diccionario(id);
 	bloquelibre->inicio=segmento->ubicacion_memoria;
 	bloquelibre->tamanio=segmento->tamanio;
 	list_add(lista_de_bloquesLibres,bloquelibre);
+		int _es_mismo_id(t_id *id1){
+			return (strcmp(id1->id,id)==0);
+		}
+		void _destruir_id(t_id *id2){
+			free(id2);
+		}
+	list_remove_and_destroy_by_condition(lista_de_id, (void*)_es_mismo_id,(void*)_destruir_id); //Se agrego esta linea de codigo para eliminar el ID del programa que se desea eliminar
 	cantidadDeSegmentos++;
 	i++;
 }
 dictionary_remove_and_destroy(dictionary, id,(void*)list_destroy);
 }
+
 
 
 //Elimina lista de segmento
@@ -346,6 +314,7 @@ int crear_segmento(char *id,int tamanio){
 			nuevoSegmento.tamanio=tamanio;
 			nuevoSegmento.ubicacion_memoria=colocar_en_memoria_FirstFit(tamanio);
 			t_bloque_libre *obtenido=buscar_bloque_en_lista(nuevoSegmento.ubicacion_memoria);
+			list_add(lista_de_id,idEnList_create(id));//Se grega ID en lista, al agregarlo en este lado del case solamente lo agregamos una vez
 			eliminar_bloques_libres_vacios();
 			actualizar_memory(tamanio,&obtenido);
 			printf("El inicio del bloque es: %p \n",nuevoSegmento.inicio);
@@ -376,6 +345,7 @@ int crear_segmento(char *id,int tamanio){
 	return new;
 }
 
+ //Creo nodo dinamico crear el primer bloque de memoria
 t_bloque_libre *bloque_create(t_bloque_libre bloque){
 	t_bloque_libre *new = malloc( sizeof(t_bloque_libre) );
 	new->inicio =manejador;
@@ -383,9 +353,10 @@ t_bloque_libre *bloque_create(t_bloque_libre bloque){
 	return new;
 }
 
-t_id *idEnList_create(t_id id){
+//Creo nodo dinamico crear el nodo id de la lista de id
+t_id *idEnList_create(char*id){
 	t_id *new = malloc( sizeof(t_id) );
-	strcpy(new->id,id.id);
+	strcpy(new->id,id);
 	return new;
 }
 
@@ -449,7 +420,8 @@ void compactar_memoria(){
 	int flag=0;
 	if(list_size(lista_de_bloquesLibres)>1){
 		actualizar_bloques_libres();}//actualizo bloques, para juntar aquellos que sus direcciones son contiguas
-
+	list_sort(lista_de_bloquesLibres,(void*)_bloques_ordenados_por_direccion);
+	eliminar_bloques_libres_vacios();
 	printf("tamaño de bloques %d\n",list_size(lista_de_bloquesLibres));
 
 	while(flag==0){
@@ -457,8 +429,8 @@ void compactar_memoria(){
 		printf("La direccion del bloque libre %p \n",libre->inicio);
 		puntero=(libre->inicio+libre->tamanio);
 		printf("La suma del tamaño %d del bloque libre y el puntero es %p \n",libre->tamanio,puntero);
-		if(buscar_id_segun_posicion(puntero)!=NULL){//pregunto si la direccion de memoria la encuentra
-			t_segmento *unSegmento=buscar_id_segun_posicion(puntero);
+		if(buscar_segmento_segun_posicion(puntero)!=NULL){//pregunto si la direccion de memoria la encuentra
+			t_segmento *unSegmento=buscar_segmento_segun_posicion(puntero);
 			printf("El segmento que sigue a ese bloque esta ubicado en la direccion%p\n",unSegmento->ubicacion_memoria);
 			char*puntero1=malloc(unSegmento->tamanio);
 			puntero1=unSegmento->ubicacion_memoria;
@@ -538,7 +510,7 @@ void _agregar_a_lista(char* key){
 		list_add(lista_de_id,key);
 }
 
-t_segmento *buscar_id_segun_posicion(char*puntero){
+t_segmento *buscar_segmento_segun_posicion(char*puntero){
 	int i=0;
 	int encontrado=0;
 	t_segmento* segmento;
@@ -628,7 +600,7 @@ t_segmento *buscar_segmento_segun_base(char*base){
 		t_id* identificador=list_get(lista_de_id,i);
 		t_list* lista=sacar_elemento_de_diccionario(identificador->id);
 		int es_base_de_segmento(t_segmento *segmento){
-			return (segmento->ubicacion_memoria==base);
+			return (segmento->inicio==base);
 		}
 		segmento=list_find(lista,(void*)es_base_de_segmento);
 		if(segmento!=NULL){
