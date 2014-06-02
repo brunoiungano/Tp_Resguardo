@@ -26,6 +26,7 @@
 #include "semaphore.h"//Biblioteca de semaforos
 #include <commons/collections/dictionary.h>
 #include <commons/collections/list.h>
+#include <commons/log.h>
 #include "utiles.h"
 
 #define BUFF_SIZE 1000 //Tamaño del buffer de datos que se transfieren entre procesos
@@ -119,6 +120,22 @@ char *leer_bytes(char*,int,int);
 
 int hay_algun_bloque_disponible(int cantidad);
 
+void _leerDeMemoria_bloquesLibres (t_list* lista);
+
+void retardo ();
+
+void armaReporte ();
+
+void _disenioConsola ();
+
+void _desarrolloConsola(int);
+
+void _cambiaAlgoritmo();
+
+void _consultaOpcion();
+
+void _haceOperacion();
+
 //void actualizar_bloques_libres1(); //prueba
 
 //void juntar_bloques(t_bloque_libre*);//prueba
@@ -141,6 +158,8 @@ char* manejador;
 char* direccion;
 char *string, algoritmo_de_ubicacion[20];
 char* inicio_en_tabla;
+char* temp_file;
+t_log* logger;
 //char* inicio_bloque;
 //int tamanio_bloque_libre;
 
@@ -155,6 +174,8 @@ inicio_en_tabla=manejador;
 int b=0;
 int z=0;
 int pruebita=0;
+temp_file = tmpnam(NULL);
+logger = log_create(temp_file, "Memory",false, LOG_LEVEL_INFO);
 
 t_bloque_libre bloqueLibre;
 dictionary=dictionary_create();
@@ -171,9 +192,18 @@ crear_segmento("12",12);
 crear_segmento("12",12);
 crear_segmento("11",11);
 crear_segmento("11",11);
+crear_segmento("133",13);
 crear_segmento("11",11);
 crear_segmento("13",13);
 crear_segmento("12",12);
+crear_segmento("13",13);
+crear_segmento("13",13);
+crear_segmento("13",13);
+crear_segmento("133",13);
+crear_segmento("133",13);
+crear_segmento("133",13);
+crear_segmento("133",13);
+crear_segmento("13",13);
 crear_segmento("13",13);
 crear_segmento("12",12);
 crear_segmento("13",13);
@@ -183,8 +213,21 @@ destruir_segmentos_de_programa("13");
 crear_segmento("13",13);
 crear_segmento("12",12);
 destruir_segmentos_de_programa("13");
+crear_segmento("133",13);
+crear_segmento("13",13);
+crear_segmento("13",13);
+crear_segmento("12",12);
+crear_segmento("13",13);
+crear_segmento("14",14);
+destruir_segmentos_de_programa("13");
+crear_segmento("13",13);
+crear_segmento("12",12);
+destruir_segmentos_de_programa("13");
+
+_disenioConsola ();
 
 
+printf("\nRevisar el archivo de log que se creo en: %s\n", temp_file);
 
 compactar_memoria();
 char* segmentito=leer_bytes(inicio_en_tabla,2,6);
@@ -616,5 +659,285 @@ t_segmento *buscar_segmento_segun_base(char*base){
 		return segmento;
 	else return NULL;
 }
+
+
+void _leerDeMemoria_bloquesLibres (t_list* lista){
+int z = 0;
+char variable_prueba[150];
+
+printf("Espacios Libres: \n");
+printf("\n");
+
+
+while (list_size(lista)>z){
+
+t_bloque_libre *bloque_libre = list_get(lista_de_bloquesLibres,z);
+printf("| Bloque libre: %d,Inicio de bloque Libre: %p tamaño: %d\n",z+1,bloque_libre->inicio,bloque_libre->tamanio);
+sprintf(variable_prueba,"| Bloque libre: %d,Inicio de bloque Libre: %p , tamaño: %d\n",z+1,bloque_libre->inicio,bloque_libre->tamanio);
+log_info(logger, "| Log de bloques libres %s", variable_prueba);
+
+z++;
+}
+
+}
+
+
+void retardo (){
+int a;
+
+printf("Ingrese la cantidad de segundos que desea retardar el sistema: ");
+scanf("%d",&a);
+sleep (a);
+}
+
+
+void armaReporte (){
+
+
+
+	printf("\n");
+	printf("\n");
+	printf("-----------------------------------\n");
+	printf("La información del diccionario es: \n");
+	printf("-----------------------------------\n");
+
+
+	void _leerDeDiccionario(t_id* ident, t_list* lista) {
+	char variable_prueba[150];
+	int z = 0;
+
+
+
+	while (list_size(lista)>z){
+	t_segmento *obtenido = list_get(lista,z);
+	printf("| ID: %s  | Inicio: %p  | Ubicacion en Memoria: %p  | Tamanio: %d  |\n", ident->id,obtenido->inicio,obtenido->ubicacion_memoria,obtenido->tamanio);
+	sprintf(variable_prueba,"| ID: %s  | Inicio: %p  | Ubicacion en Memoria: %p  | Tamanio: %d  |\n", ident->id,obtenido->inicio,obtenido->ubicacion_memoria,obtenido->tamanio);
+	log_info(logger, "| Log de estado memoria %s", variable_prueba);
+	z++;
+	}
+		}
+
+
+
+	dictionary_iterator(dictionary, (void*) _leerDeDiccionario);
+	printf("\n");
+	_leerDeMemoria_bloquesLibres(lista_de_bloquesLibres);
+
+
+}
+
+
+
+void _disenioConsola () {
+int op=0;
+
+
+
+printf("\n-----------Consola UMV-----------\n");
+printf("\n");
+printf("Ingrese la opcion deseada: \n");
+printf("1 - Operacion\n");
+printf("2 - Retardo\n");
+printf("3 - Algoritmo\n");
+printf("4 - Compactacion\n");
+printf("5 - Dump \n");
+printf("Si desea ver un reporte de memoria presione 6 \n");
+
+scanf("%d",&op);
+
+_desarrolloConsola(op);
+
+}
+
+void _desarrolloConsola(int opcion){
+
+switch(opcion){
+	case 1: _haceOperacion();
+
+	break;
+
+	case 2: retardo();
+	_consultaOpcion();
+	break;
+
+	case 3: _cambiaAlgoritmo();
+	_consultaOpcion();
+	break;
+
+	case 4: compactar_memoria();
+	_consultaOpcion();
+	break;
+
+//	case 5: _dump();
+//		break;
+
+	case 6: armaReporte ();
+	printf("\n Acceda a la siguiente ruta para revisar el archivo de log que se creo en: %s\n", temp_file);
+    break;
+ }
+
+}
+
+
+void _cambiaAlgoritmo(){
+int elige_algoritmo=0;
+
+
+printf("Ingrese el algoritmo que desea cambiar \n");
+printf("1 - First Fit / 2 - Worst Fit\n");
+scanf("%d",&elige_algoritmo);
+
+switch(elige_algoritmo){
+
+case 1 : strcpy(algoritmo_de_ubicacion,"First Fit");
+         printf("Se ha cambiado el algoritmo por First Fit\n");
+         break;
+
+case 2 : strcpy(algoritmo_de_ubicacion,"Worst Fit");
+         printf("Se ha cambiado el algoritmo por Worst Fit\n");
+         break;
+
+default: printf("El numero ingresado no corresponde a ningun algoritmo disponible\n");
+		 _cambiaAlgoritmo();
+		 break;
+		 }
+}
+
+
+void _consultaOpcion(){
+	int decision=0;
+
+	printf("Desea volver al menu de opciones? Ingrese 1 para volver, 0 para salir\n");
+	scanf("%d",&decision);
+
+	switch(decision){
+	case 1: _disenioConsola();
+	break;
+
+	case 0: printf("Ha salido de la consola\n");
+	break;
+	}
+}
+
+
+void _haceOperacion(){
+int opcion2 = 0;
+char* base= inicio_en_tabla;
+int offset = 0;
+int cantidad = 0;
+char palabra []="";
+char id[2];
+int tamanio=0;
+char variable_prueba[200];
+int resultado;
+
+printf("Ingrese el tipo de operación que desea realizar: \n");
+printf("1 - Solicitar bytes\n");
+printf("2 - Enviar bytes\n");
+printf("3 - Crear Segmento\n");
+printf("4 - Destruir Segmento\n");
+scanf("%d",&opcion2);
+
+switch(opcion2){
+
+case 1: printf("Ingrese la base: \n");
+        scanf("%s",base);
+		printf("Ingrese el offset: \n");
+	    scanf("%d",&offset);
+		printf("Ingrese la cantidad de bytes: \n");
+		scanf("%d",&cantidad);
+			  leer_bytes(base, offset, cantidad);
+			  printf("\n Desea guardar el resultado en un archivo? \n");
+			  printf("Ingrese 1 para guardar, otro numero para continuar\n");
+			  scanf("%d",&resultado);
+			  switch(resultado){
+			  case 1 : sprintf(variable_prueba,"| Base: %s  | Offset: %d  | CantidadBytes: %d |\n", base, offset, cantidad);
+			  	       log_info(logger, "| Se ha solicitado leer la siguiente información %s", variable_prueba);
+			  break;
+			  default: _haceOperacion();
+			  break;
+			  }
+
+			  _consultaOpcion();
+			  break;
+
+case 2: printf("Ingrese la base: \n");
+		scanf("%s",base);
+		printf("Ingrese el offset: \n");
+		scanf("%d",&offset);
+		printf("Ingrese la cantidad de bytes: \n");
+		scanf("%d",&cantidad);
+		printf("Ingrese la palabra: \n");
+		scanf("%s",palabra);
+		escribir_bytes(base, offset, cantidad, palabra);
+
+		printf("\n Desea guardar el resultado en un archivo? \n");
+		printf("Ingrese 1 para guardar, otro numero para continuar\n");
+		scanf("%d",&resultado);
+		switch(resultado){
+
+		case 1 :sprintf(variable_prueba,"| Base: %s  | Offset: %d  | CantidadBytes: %d | Palabra: %s\n", base, offset, cantidad, palabra);
+					  	log_info(logger, "| Se ha solicitado escribir la siguiente información %s", variable_prueba);
+		break;
+
+		default: _haceOperacion();
+   	    break;
+		  }
+			  _consultaOpcion();
+			  break;
+
+case 3: printf("Ingrese el id del segmento: \n");
+			 scanf("%s",id);
+		printf("Ingrese el tamanio: \n");
+			 scanf("%d",&tamanio);
+			 crear_segmento(id,tamanio);
+			 printf("Se creo segmento %s de tamaño %d \n",id, tamanio);
+
+			 printf("\n Desea guardar el resultado en un archivo? \n");
+	 		printf("Ingrese 1 para guardar, otro numero para continuar\n");
+			scanf("%d",&resultado);
+		 	switch(resultado){
+
+		 	case 1 : sprintf(variable_prueba,"| Segmento : %s  | Tamaño: %d |\n", id, tamanio);
+			         log_info(logger, "| Se ha solicitado crear el siguiente segmento: %s", variable_prueba);
+			 break;
+
+	     default:_haceOperacion();
+	     break;
+			    }
+
+		 	_consultaOpcion();
+			 break;
+
+case 4: printf("Ingrese el segmento que desea destruir: \n");
+			scanf("%s",id);
+			if (dictionary_has_key(dictionary,id))
+			destruir_segmentos_de_programa(id);
+			else printf("No es un segmento valido\n");
+
+
+
+			 printf("\n Desea guardar el resultado en un archivo? \n");
+	 		printf("Ingrese 1 para guardar, otro numero para continuar\n");
+			scanf("%d",&resultado);
+		 	switch(resultado){
+
+		 	case 1 : sprintf(variable_prueba,"| Segmento : %s |\n", id);
+					log_info(logger, "| Se ha solicitado eliminar el siguiente segmento: %s", variable_prueba);
+					 break;
+
+			 default:_haceOperacion();
+				      break;
+			    }
+
+		_consultaOpcion();
+		 break;
+
+
+
+}
+
+}
+
 
 
