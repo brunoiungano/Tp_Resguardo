@@ -615,14 +615,18 @@ char *leer_bytes(char* base,int offset,int cantidad){
 	char*segmento_leido=malloc(cantidad);
 	t_segmento *segmento;
 	segmento=buscar_segmento_segun_base(base);
-	if(offset<segmento->tamanio && cantidad<segmento->tamanio && total<=segmento->tamanio){
+	if(segmento!=NULL){
+		if(offset<segmento->tamanio && cantidad<segmento->tamanio && total<=segmento->tamanio){
 		puntero=segmento->ubicacion_memoria+offset;
 		memcpy(segmento_leido,puntero,cantidad);
 		return segmento_leido;}
-	else{printf("Se desea leer bytes que no pertenecen a este segmento\n");
+		else{printf("Se desea leer bytes que no pertenecen a este segmento\n");
 		return NULL;
-		}
+		}}
+	else{printf("La base elegida no corresponde a una base de un segmento generado");
+	return NULL;}
 }
+
 
 void escribir_bytes(char*base,int offset,int cantidad,char palabra[]){
 	int total;
@@ -630,11 +634,12 @@ void escribir_bytes(char*base,int offset,int cantidad,char palabra[]){
 	t_segmento *segmento;
 	total=offset+cantidad;
 	segmento=buscar_segmento_segun_base(base);
-	if(offset<segmento->tamanio && cantidad<segmento->tamanio && total<=segmento->tamanio){
+	if(segmento!=NULL){
+		if(offset<segmento->tamanio && cantidad<segmento->tamanio && total<=segmento->tamanio){
 		puntero=segmento->ubicacion_memoria+offset;
 		memcpy(puntero,palabra,cantidad);}
-	else { printf("SIGVE:Segmentation Fault,se desea escribir fuera de los rangos permitidos\n");}
-
+		else { printf("SIGVE:Segmentation Fault,se desea escribir fuera de los rangos permitidos\n");}}
+	else printf("La base elegida no corresponde a una base de un segmento generado");
 }
 
 
