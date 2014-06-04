@@ -138,6 +138,8 @@ void _haceOperacion();
 
 void buscaContenidoMemoria(int, int);
 
+void buscaContenidoMemoriaYguarda(int, int);
+
 void dump ();
 
 //void actualizar_bloques_libres1(); //prueba
@@ -833,8 +835,8 @@ int opcion2 = 0;
 char* base= inicio_en_tabla;
 int offset = 0;
 int cantidad = 0;
-char palabra []="";
-char id[2];
+char palabra [];
+char id[6];
 int tamanio=0;
 char variable_prueba[200];
 int resultado;
@@ -957,12 +959,28 @@ case 4: printf("Ingrese el segmento que desea destruir: \n");
 
 }
 
-void buscaContenidoMemoria(int offset, int bytes){
+void buscaContenidoMemoriaYguarda(int offset, int bytes){
 char *puntero = memoria_principal+offset;
+char info [200];
 int z=0;
 
 while (z < bytes && bytes < variable){
 
+sprintf(info,"| Elemento : %p \n", puntero);
+log_info(logger, "| Los elementos leidos son: %s \n",info);
+
+
+puntero++;
+z++;
+}
+}
+
+void buscaContenidoMemoria(int offset, int bytes){
+char *puntero = memoria_principal+offset;
+
+int z=0;
+
+while (z < bytes && bytes < variable){
 
 printf("Elemento %p\n", puntero);
 
@@ -971,6 +989,7 @@ puntero++;
 z++;
 }
 }
+
 
 void dump (){
 int opcion=0;
@@ -998,9 +1017,10 @@ case 2: printf("Ingrese el offset: \n");
 
 				 	case 1 : sprintf(variable_prueba,"| Offset : %d | Cantidad bytes: %d \n", offset,bytes);
 							log_info(logger, "| Se ha solicitado leer la siguiente información de memoria: %s \n", variable_prueba);
-							 break;
+							buscaContenidoMemoriaYguarda(offset,bytes);
+							break;
 
-					 default:_haceOperacion();
+					 default: _consultaOpcion();
 						      break;
 					    }
 
