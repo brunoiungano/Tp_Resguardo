@@ -142,6 +142,8 @@ void buscaContenidoMemoriaYguarda(int, int);
 
 void dump ();
 
+void mostrarConsola ();
+
 //void actualizar_bloques_libres1(); //prueba
 
 //void juntar_bloques(t_bloque_libre*);//prueba
@@ -178,8 +180,7 @@ memoria_principal=malloc(1000);
 manejador=memoria_principal;
 inicio_en_tabla=manejador;
 //int z=0;
-temp_file = tmpnam(NULL);
-logger = log_create(temp_file, "Memory",false, LOG_LEVEL_INFO);
+
 
 t_bloque_libre bloqueLibre;
 dictionary=dictionary_create();
@@ -228,7 +229,7 @@ crear_segmento("13",13);
 crear_segmento("12",12);
 destruir_segmentos_de_programa("13");
 
-_disenioConsola ();
+mostrarConsola ();
 
 
 //printf("\nRevisar el archivo de log que se creo en: %s\n", temp_file);
@@ -735,6 +736,15 @@ void armaReporte (){
 
 }
 
+void mostrarConsola (){
+temp_file = tmpnam(NULL);
+logger = log_create(temp_file, "Memory",true, LOG_LEVEL_INFO);
+
+_disenioConsola();
+
+
+}
+
 
 
 void _disenioConsola () {
@@ -835,11 +845,11 @@ int opcion2 = 0;
 char* base= inicio_en_tabla;
 int offset = 0;
 int cantidad = 0;
-char palabra [];
+char *palabra='\0';
 char id[6];
 int tamanio=0;
 char variable_prueba[200];
-int resultado;
+
 
 printf("Ingrese el tipo de operación que desea realizar: \n");
 printf("1 - Solicitar bytes\n");
@@ -857,24 +867,18 @@ case 1: printf("Ingrese la base: \n");
 		printf("Ingrese la cantidad de bytes: \n");
 		scanf("%d",&cantidad);
 
-			  if(leer_bytes(base, offset, cantidad)==NULL)
-				  {printf("\n Desea guardar el resultado en un archivo? \n");
-				  printf("Ingrese 1 para guardar, otro numero para continuar\n");
-				  scanf("%d",&resultado);
-				  switch(resultado){
-				  case 1 : sprintf(variable_prueba,"| Base: %s  | Offset: %d  | CantidadBytes: %d |\n", base, offset, cantidad);
-				  	       log_error(logger, "| Se ha solicitado leer la siguiente información pero no esta disponible %s \n", variable_prueba);
-				  break;
-				}}
-			  else
+			  if(leer_bytes(base, offset, cantidad)==NULL){
+				  sprintf(variable_prueba,"| Base: %s  | Offset: %d  | CantidadBytes: %d |\n", base, offset, cantidad);
+				  log_error(logger, "| Se ha solicitado leer la siguiente información pero no esta disponible %s \n", variable_prueba);
+
+				  }
+
+			  else {
 				  leer_bytes(base, offset, cantidad);
-			  printf("\n Desea guardar el resultado en un archivo? \n");
-			  printf("Ingrese 1 para guardar, otro numero para continuar\n");
-			  scanf("%d",&resultado);
-			  switch(resultado){
-			  case 1 : sprintf(variable_prueba,"| Base: %s  | Offset: %d  | CantidadBytes: %d |\n", base, offset, cantidad);
-			  	       log_info(logger, "| Se ha solicitado leer la siguiente información %s \n", variable_prueba);
-			  break;
+
+				  sprintf(variable_prueba,"| Base: %s  | Offset: %d  | CantidadBytes: %d |\n", base, offset, cantidad);
+			  	  log_info(logger, "| Se ha solicitado leer la siguiente información %s \n", variable_prueba);
+
 
 			  }
 
@@ -891,20 +895,13 @@ case 2: printf("Ingrese la base: \n");
 		scanf("%s",palabra);
 		escribir_bytes(base, offset, cantidad, palabra);
 
-		printf("\n Desea guardar el resultado en un archivo? \n");
-		printf("Ingrese 1 para guardar, otro numero para continuar\n");
-		scanf("%d",&resultado);
-		switch(resultado){
+			sprintf(variable_prueba,"| Base: %s  | Offset: %d  | CantidadBytes: %d | Palabra: %s \n", base, offset, cantidad, palabra);
+			log_info(logger, "| Se ha solicitado escribir la siguiente información %s \n", variable_prueba);
 
-		case 1 :sprintf(variable_prueba,"| Base: %s  | Offset: %d  | CantidadBytes: %d | Palabra: %s \n", base, offset, cantidad, palabra);
-					  	log_info(logger, "| Se ha solicitado escribir la siguiente información %s \n", variable_prueba);
+		_haceOperacion();
+
+		_consultaOpcion();
 		break;
-
-		default: _haceOperacion();
-   	    break;
-		  }
-			  _consultaOpcion();
-			  break;
 
 case 3: printf("Ingrese el id del segmento: \n");
 			 scanf("%s",id);
@@ -913,18 +910,13 @@ case 3: printf("Ingrese el id del segmento: \n");
 			 crear_segmento(id,tamanio);
 			 printf("Se creo segmento %s de tamaño %d \n",id, tamanio);
 
-			 printf("\n Desea guardar el resultado en un archivo? \n");
-	 		printf("Ingrese 1 para guardar, otro numero para continuar\n");
-			scanf("%d",&resultado);
-		 	switch(resultado){
+		 	sprintf(variable_prueba,"| Segmento : %s  | Tamaño: %d |\n", id, tamanio);
+			log_info(logger, "| Se ha solicitado crear el siguiente segmento: %s \n", variable_prueba);
 
-		 	case 1 : sprintf(variable_prueba,"| Segmento : %s  | Tamaño: %d |\n", id, tamanio);
-			         log_info(logger, "| Se ha solicitado crear el siguiente segmento: %s \n", variable_prueba);
-			 break;
 
-	     default:_haceOperacion();
-	     break;
-			    }
+	     _haceOperacion();
+
+
 
 		 	_consultaOpcion();
 			 break;
@@ -935,20 +927,11 @@ case 4: printf("Ingrese el segmento que desea destruir: \n");
 			destruir_segmentos_de_programa(id);
 			else printf("No es un segmento valido\n");
 
+		 	sprintf(variable_prueba,"| Segmento : %s |\n", id);
+			log_info(logger, "| Se ha solicitado eliminar el siguiente segmento: %s \n", variable_prueba);
 
+			_haceOperacion();
 
-			printf("\n Desea guardar el resultado en un archivo? \n");
-	 		printf("Ingrese 1 para guardar, otro numero para continuar\n");
-			scanf("%d",&resultado);
-		 	switch(resultado){
-
-		 	case 1 : sprintf(variable_prueba,"| Segmento : %s |\n", id);
-					log_info(logger, "| Se ha solicitado eliminar el siguiente segmento: %s \n", variable_prueba);
-					 break;
-
-			 default:_haceOperacion();
-				      break;
-			    }
 
 		_consultaOpcion();
 		 break;
@@ -994,7 +977,6 @@ z++;
 void dump (){
 int opcion=0;
 int offset=0,bytes=0;
-int resultado =0;
 char variable_prueba[200];
 
 printf("Ingrese 1 si desea ver y generar un reporte de memoria \n");
@@ -1009,23 +991,15 @@ case 2: printf("Ingrese el offset: \n");
 		scanf("%d",&offset);
 		printf("Ingrese la cantidad de bytes que desea leer de memoria: \n");
 		scanf("%d",&bytes);
-		buscaContenidoMemoria(offset,bytes);
-		printf("\n Desea guardar el resultado en un archivo? \n");
-			 		printf("Ingrese 1 para guardar, otro numero para continuar\n");
-					scanf("%d",&resultado);
-				 	switch(resultado){
 
-				 	case 1 : sprintf(variable_prueba,"| Offset : %d | Cantidad bytes: %d \n", offset,bytes);
-							log_info(logger, "| Se ha solicitado leer la siguiente información de memoria: %s \n", variable_prueba);
-							buscaContenidoMemoriaYguarda(offset,bytes);
-							break;
+		sprintf(variable_prueba,"| Offset : %d | Cantidad bytes: %d \n", offset,bytes);
+		log_info(logger, "| Se ha solicitado leer la siguiente información de memoria: %s \n", variable_prueba);
+		buscaContenidoMemoriaYguarda(offset,bytes);
 
-					 default: _consultaOpcion();
-						      break;
-					    }
 
+		 _consultaOpcion();
+	  break;
 
 }
-
 }
 
