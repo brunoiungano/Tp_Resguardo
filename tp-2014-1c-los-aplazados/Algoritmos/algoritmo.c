@@ -90,8 +90,6 @@ int _bloques_ordenados_por_direccion(t_bloque_libre *, t_bloque_libre *);
 
 t_bloque_libre *buscar_bloque_en_lista();
 
-void levantarArchivoKernel();
-
 t_id *idEnList_create(char*);
 
 t_segmento* buscar_segmento_segun_posicion();
@@ -114,13 +112,15 @@ int _es_bloque_vacio(t_bloque_libre *);
 
 t_segmento *buscar_segmento_segun_base(char*);
 
-void escribir_bytes(char*,int,int ,char []);
+void escribir_bytes(char*,int,int ,void*);
 
 char *leer_bytes(char*,int,int);
 
-int hay_algun_bloque_disponible(int cantidad);
+int hay_algun_bloque_disponible(int );
 
-void _leerDeMemoria_bloquesLibres (t_list* lista);
+void _leerDeMemoria_bloquesLibres (t_list* );
+
+int baseDeSegmento_pertenece_a_id(char *,char* );
 
 void retardo ();
 
@@ -138,9 +138,11 @@ void _haceOperacion();
 
 void buscaContenidoMemoria(int, int);
 
-void buscaContenidoMemoriaYguarda(int, int);
+void buscaContenidoMemoriaYguarda(int,int);
 
 void dump ();
+
+void levantarArchivoUMV();
 
 void mostrarConsola ();
 
@@ -163,25 +165,26 @@ t_list* lista_de_id;
 int variable=1000;
 void* memoria_principal;
 char* manejador;
-char* direccion;
 char *string, algoritmo_de_ubicacion[20];
 char* inicio_en_tabla;
 char* temp_file;
 t_log* logger;
-//char* inicio_bloque;
-//int tamanio_bloque_libre;
+char direccion[100], ipUMV[20];
+int puertoUMV,capacidad_de_memoria;
 
 //-----------------------Prueba del main-----------------------------------
-int main(){
+int main(int argc, char* argv[]){
+
+strcpy(direccion,argv[2]);
+string=(char*)malloc(sizeof(char)*100);
+levantarArchivoUMV();
 
 //Declaramos los punteros, memoria_principal es el "gran malloc", el manejador es para recorrer dicho malloc, y el resguardo es para
 //no perder el puntero a la memoria prncipal;
 memoria_principal=malloc(1000);
 manejador=memoria_principal;
 inicio_en_tabla=manejador;
-//int z=0;
-
-
+//Creamos el archivo de LOG
 t_bloque_libre bloqueLibre;
 dictionary=dictionary_create();
 lista_de_bloquesLibres=list_create();
@@ -189,11 +192,17 @@ lista_de_id=list_create();
 list_add(lista_de_bloquesLibres,bloque_create(bloqueLibre));
 t_bloque_libre *obtenido=list_get(lista_de_bloquesLibres,0);
 
-printf("manejador%p\n",manejador);
+printf("manejador %p\n",manejador);
 printf("Inicio libre %p\n",obtenido->inicio);
 
 crear_segmento("12",12);
-crear_segmento("12",12);
+sleep(2);
+crear_segmento("13",22);
+escribir_bytes(inicio_en_tabla,1,7 ,"4587878777");
+char*buf=leer_bytes(inicio_en_tabla,1,5);
+printf("BUFFER %s",buf);
+
+/*crear_segmento("12",12);
 crear_segmento("12",12);
 crear_segmento("11",11);
 crear_segmento("11",11);
@@ -227,9 +236,9 @@ crear_segmento("14",14);
 destruir_segmentos_de_programa("13");
 crear_segmento("13",13);
 crear_segmento("12",12);
-destruir_segmentos_de_programa("13");
+destruir_segmentos_de_programa("13");*/
 
-mostrarConsola ();
+mostrarConsola();
 
 
 //printf("\nRevisar el archivo de log que se creo en: %s\n", temp_file);
@@ -255,6 +264,7 @@ mostrarConsola ();
 //
 //
 //
+
 return 0;
 }
 
@@ -455,14 +465,7 @@ t_bloque_libre *buscar_bloque_en_lista(char* direccion1){
 	return bloqueFree;
 	}
 
-//Levanta el archivo de configuracion
-void levantarArchivoKernel(){
-	t_config *archivoConf;
-	archivoConf=config_create(direccion);
-	string=config_get_string_value(archivoConf,"algoritmo");
-	strcpy(algoritmo_de_ubicacion[20],string);
-	config_destroy(archivoConf);
-}
+
 //----------COMPACTACION--------------------
 //Compactar la memoria principal
 void compactar_memoria(){
@@ -621,7 +624,7 @@ char *leer_bytes(char* base,int offset,int cantidad){
 	t_segmento *segmento;
 	segmento=buscar_segmento_segun_base(base);
 	if(segmento!=NULL){
-		if(offset<segmento->tamanio && cantidad<segmento->tamanio && total<=segmento->tamanio){
+		if(total<=segmento->tamanio){ //offset<segmento->tamanio && cantidad<segmento->tamanio &&
 		puntero=segmento->ubicacion_memoria+offset;
 		memcpy(segmento_leido,puntero,cantidad);
 		return segmento_leido;}
@@ -632,17 +635,25 @@ char *leer_bytes(char* base,int offset,int cantidad){
 	return NULL;}
 }
 
+int baseDeSegmento_pertenece_a_id(char *identificador,char* base){ //Condicion de seguridad, para saber si el programa puede escribir o leer de la base que me esta mandando
+	t_list *lista=dictionary_get(dictionary,identificador);
+		int es_base_de_segmento(t_segmento *segmento){
+			return (segmento->inicio==base);
+			}
+return list_any_satisfy(lista,(void*)es_base_de_segmento);
 
-void escribir_bytes(char*base,int offset,int cantidad,char palabra[]){
+}
+
+void escribir_bytes(char*base,int offset,int cantidad,void* BUFFER){
 	int total;
 	char*puntero=memoria_principal;
 	t_segmento *segmento;
 	total=offset+cantidad;
 	segmento=buscar_segmento_segun_base(base);
 	if(segmento!=NULL){
-		if(offset<segmento->tamanio && cantidad<segmento->tamanio && total<=segmento->tamanio){
+		if( total<=segmento->tamanio){//offset<segmento->tamanio && cantidad<segmento->tamanio &&
 		puntero=segmento->ubicacion_memoria+offset;
-		memcpy(puntero,palabra,cantidad);}
+		memcpy(puntero,BUFFER,cantidad);}
 		else { printf("SIGVE:Segmentation Fault,se desea escribir fuera de los rangos permitidos\n");}}
 	else printf("La base elegida no corresponde a una base de un segmento generado");
 }
@@ -737,8 +748,13 @@ void armaReporte (){
 }
 
 void mostrarConsola (){
+t_config *archivoConf;
+int validador;
+archivoConf=config_create(direccion);
+validador=config_get_int_value(archivoConf,"reporte_en_pantalla");
+config_destroy(archivoConf);
 temp_file = tmpnam(NULL);
-logger = log_create(temp_file, "Memory",true, LOG_LEVEL_INFO);
+logger = log_create(temp_file, "Memory",validador, LOG_LEVEL_INFO);
 
 _disenioConsola();
 
@@ -835,6 +851,7 @@ void _consultaOpcion(){
 	break;
 
 	case 0: printf("Ha salido de la consola\n");
+	log_destroy(logger);
 	break;
 	}
 }
@@ -898,7 +915,7 @@ case 2: printf("Ingrese la base: \n");
 			sprintf(variable_prueba,"| Base: %s  | Offset: %d  | CantidadBytes: %d | Palabra: %s \n", base, offset, cantidad, palabra);
 			log_info(logger, "| Se ha solicitado escribir la siguiente información %s \n", variable_prueba);
 
-		_haceOperacion();
+
 
 		_consultaOpcion();
 		break;
@@ -914,7 +931,7 @@ case 3: printf("Ingrese el id del segmento: \n");
 			log_info(logger, "| Se ha solicitado crear el siguiente segmento: %s \n", variable_prueba);
 
 
-	     _haceOperacion();
+
 
 
 
@@ -930,7 +947,7 @@ case 4: printf("Ingrese el segmento que desea destruir: \n");
 		 	sprintf(variable_prueba,"| Segmento : %s |\n", id);
 			log_info(logger, "| Se ha solicitado eliminar el siguiente segmento: %s \n", variable_prueba);
 
-			_haceOperacion();
+
 
 
 		_consultaOpcion();
@@ -1002,4 +1019,18 @@ case 2: printf("Ingrese el offset: \n");
 
 }
 }
+
+//Levanta el archivo de configuracion
+void levantarArchivoUMV(){
+	t_config *archivoConf;
+	archivoConf=config_create(direccion);
+	string=config_get_string_value(archivoConf,"ip_umv");
+	strcpy(ipUMV,string);
+	string=config_get_string_value(archivoConf,"algoritmo");
+	strcpy(algoritmo_de_ubicacion,string);
+	puertoUMV=config_get_int_value(archivoConf,"puerto_umv");
+	capacidad_de_memoria=config_get_int_value(archivoConf,"espacio_memoria");
+	config_destroy(archivoConf);
+}
+
 
