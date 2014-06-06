@@ -731,7 +731,6 @@ void armaReporte (){
 
 	while (list_size(lista)>z){
 	t_segmento *obtenido = list_get(lista,z);
-	printf("| ID: %s  | Inicio: %p  | Ubicacion en Memoria: %p  | Tamanio: %d  |\n", ident->id,obtenido->inicio,obtenido->ubicacion_memoria,obtenido->tamanio);
 	sprintf(variable_prueba,"| ID: %s  | Inicio: %p  | Ubicacion en Memoria: %p  | Tamanio: %d  |\n", ident->id,obtenido->inicio,obtenido->ubicacion_memoria,obtenido->tamanio);
 	log_info(logger, "| Log de estado memoria %s", variable_prueba);
 	z++;
@@ -770,12 +769,15 @@ int op=0;
 
 printf("\n-----------Consola UMV-----------\n");
 printf("\n");
+printf("\n");
 printf("Ingrese la opcion deseada: \n");
 printf("1 - Operacion\n");
 printf("2 - Retardo\n");
 printf("3 - Algoritmo\n");
 printf("4 - Compactacion\n");
 printf("5 - Dump \n");
+printf("\n");
+printf("Ingrese 0 para salir de la consola\n");
 
 
 scanf("%d",&op);
@@ -809,8 +811,13 @@ switch(opcion){
 	_consultaOpcion();
 	break;
 
+	case 0: printf("Usted ha salido de la consola\n");
+	break;
 
- }
+	default: printf("Usted ha ingresado una opcion no valida, por favor vuelva a seleccionar una opcion.\n");
+	_consultaOpcion();
+
+}
 
 }
 
