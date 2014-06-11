@@ -25,14 +25,13 @@ endif
 all: Umv
 
 dependents:
-	-cd /home/utnso/workspace/tp-2014-1c-los-aplazados/commons/Debug && $(MAKE) clean all
-	-cd /home/utnso/workspace/tp-2014-1c-los-aplazados/utilidades/Debug && $(MAKE) clean all
+	-cd /home/utnso/workspace/utilidades/Debug && $(MAKE) all
 
 # Tool invocations
-Umv: $(OBJS) $(USER_OBJS) /home/utnso/workspace/tp-2014-1c-los-aplazados/commons/Debug/libcommons.so /home/utnso/workspace/tp-2014-1c-los-aplazados/utilidades/Debug/libutilidades.so
+Umv: $(OBJS) $(USER_OBJS) /home/utnso/workspace/utilidades/Debug/libutilidades.so
 	@echo 'Building target: $@'
 	@echo 'Invoking: GCC C Linker'
-	gcc -L"/home/utnso/workspace/tp-2014-1c-los-aplazados/utilidades/Debug" -L"/home/utnso/workspace/tp-2014-1c-los-aplazados/commons/Debug" -o "Umv" $(OBJS) $(USER_OBJS) $(LIBS)
+	gcc -L"/home/utnso/workspace/utilidades/Debug" -o "Umv" $(OBJS) $(USER_OBJS) $(LIBS)
 	@echo 'Finished building target: $@'
 	@echo ' '
 
@@ -43,7 +42,6 @@ clean:
 
 .PHONY: all clean dependents
 .SECONDARY:
-/home/utnso/workspace/tp-2014-1c-los-aplazados/commons/Debug/libcommons.so:
-/home/utnso/workspace/tp-2014-1c-los-aplazados/utilidades/Debug/libutilidades.so:
+/home/utnso/workspace/utilidades/Debug/libutilidades.so:
 
 -include ../makefile.targets
