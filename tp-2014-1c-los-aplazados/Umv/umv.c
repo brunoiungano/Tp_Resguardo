@@ -135,14 +135,16 @@ void buscaContenidoMemoriaYguarda(int,int);
 
 void dump ();
 
-void cambio_de_proceso_activo(char *);
+void cambio_de_proceso_activo(char*);
 
+void liberacionDeMemoria(t_list*,t_list*,t_dictionary*);
 
 t_dictionary *dictionary;
 t_list *lista_de_bloquesLibres;
 t_list* lista_de_id;
 
-char ID[4];
+char ID[6];
+char id_proceso_activo[6];
 char base_segmento[8];
 int baseSegmento;
 void* memoria_principal;
@@ -162,17 +164,22 @@ pthread_mutex_t semHiloConexion;
 char **numConexion;
 char* temp_file;
 t_log* logger;
-char id_proceso_activo[6];
 
 //-----------------------Prueba del main-----------------------------------
 int main(int argc, char* argv[]){
 strcpy(direccion,argv[2]);
 string=(char*)malloc(sizeof(char)*100);
 levantarArchivoUMV();
-
 //Declaramos los punteros, memoria_principal es el "gran malloc", el manejador es para recorrer dicho malloc, y el resguardo es para
 //no perder el puntero a la memoria prncipal;
 memoria_principal=malloc(capacidad_de_memoria);
+manejador=memoria_principal;
+
+//for(i=0;i<capacidad_de_memoria;i++){ //en caso de que haya que inicializar la mem principal
+	//strcpy(manejador,"0");
+	//manejador++;
+//}
+
 manejador=memoria_principal;
 t_bloque_libre bloqueLibre;
 dictionary=dictionary_create();
@@ -183,12 +190,17 @@ t_bloque_libre *obtenido=list_get(lista_de_bloquesLibres,0);
 
 printf("manejador%p\n",manejador);
 printf("Inicio libre %p\n",obtenido->inicio);
+crear_segmento("0",10);
+cambio_de_proceso_activo("0");
+escribir_bytes(0,1,6,"bruno");
+char*palabrita=leer_bytes(0,1,6);
+printf("La palabra leida es %s\n",palabrita);
 
 
 pthread_create(&hiloMenu,NULL,mostrarConsola,NULL);
 recibirConexiones();
 
-
+liberacionDeMemoria(lista_de_bloquesLibres,lista_de_id,dictionary);
 return 0;
 }
 
@@ -402,9 +414,11 @@ t_bloque_libre *buscar_bloque_en_lista(char* direccion1){
 	return bloqueFree;
 	}
 
-//Condicion de t_bloque_libre *buscar_bloque_en_lista() para que me encuentre el bloque con dicha direccion
+//Esta funcion me permite cambiar el id que se esta trabajando en un instante determinado
 
-
+void cambio_de_proceso_activo(char id[6]){
+	strcpy(id_proceso_activo,id);
+}
 
 
 //----------COMPACTACION--------------------
@@ -562,18 +576,24 @@ char *leer_bytes(int base,int offset,int cantidad){
 	int total=offset+cantidad;
 	char*segmento_leido=malloc(cantidad);
 	t_segmento *segmento;
-	segmento=buscar_segmento_segun_base(base);
-	if(segmento!=NULL){
-		if(total<=segmento->tamanio){ //offset<segmento->tamanio && cantidad<segmento->tamanio &&
-		puntero=segmento->ubicacion_memoria+offset;
-		memcpy(segmento_leido,puntero,cantidad);
-		return segmento_leido;}
-		else{printf("Se desea leer bytes que no pertenecen a este segmento\n");
-		return NULL;
+	int bandera;
+	bandera=baseDeSegmento_pertenece_a_id(id_proceso_activo,base);
+	if(bandera){
+		segmento=buscar_segmento_segun_base(base);
+		if(segmento!=NULL){
+			if(total<=segmento->tamanio){ //offset<segmento->tamanio && cantidad<segmento->tamanio &&
+				puntero=segmento->ubicacion_memoria+offset;
+				memcpy(segmento_leido,puntero,cantidad);
+				return segmento_leido;}
+			else{printf("Se desea leer bytes que no pertenecen a este segmento\n");
+			return NULL;
 		}}
-	else{printf("La base elegida no corresponde a una base de un segmento generado");
+		else {printf("La base elegida no corresponde a una base de un segmento generado");
+			return NULL;}}
+	else{printf("La base elegida no corresponde a una base de algun segmento del programa activo \n");
 	return NULL;}
 }
+
 
 int baseDeSegmento_pertenece_a_id(char *identificador,int base){ //Condicion de seguridad, para saber si el programa puede escribir o leer de la base que me esta mandando
 	t_list *lista=dictionary_get(dictionary,identificador);
@@ -589,27 +609,31 @@ int escribir_bytes(int base,int offset,int cantidad,char* BUFFER){
 	char*puntero=memoria_principal;
 	t_segmento *segmento;
 	total=offset+cantidad;
-	segmento=buscar_segmento_segun_base(base);
-	if(segmento!=NULL){
-		if( total<=segmento->tamanio){//offset<segmento->tamanio && cantidad<segmento->tamanio &&
-		puntero=segmento->ubicacion_memoria+offset;
-		memcpy(puntero,BUFFER,cantidad);
-		return 1;}
+	int bandera;
+	bandera=baseDeSegmento_pertenece_a_id(id_proceso_activo,base);
+	if(bandera){
+		segmento=buscar_segmento_segun_base(base);
+		if(segmento!=NULL){
+			if( total<=segmento->tamanio){//offset<segmento->tamanio && cantidad<segmento->tamanio &&
+				puntero=segmento->ubicacion_memoria+offset;
+				memcpy(puntero,BUFFER,cantidad);
+				return 1;}
 		else { printf("SIGVE:Segmentation Fault,se desea escribir fuera de los rangos permitidos\n");
 		return 0;}}
 	else {printf("La base elegida no corresponde a una base de un segmento generado");
 	return 0;
-	}
+	}}
+	else{printf("La base elegida no corresponde a una base de algun segmento del programa activo \n");
+		return 0;}
 }
 
 t_segmento *buscar_segmento_segun_base(int base){
 	int i=0;
 	int encontrado=0;
 	t_segmento* segmento;
-	int cant=list_size(lista_de_id);
+	t_list *lista=dictionary_get(dictionary,id_proceso_activo);
+	int cant=list_size(lista);
 	while(encontrado==0 && i<cant ){
-		t_id* identificador=list_get(lista_de_id,i);
-		t_list* lista=sacar_elemento_de_diccionario(identificador->id);
 		int es_base_de_segmento(t_segmento *segmento){
 			return (segmento->inicio==base);
 		}
@@ -718,6 +742,10 @@ printf("3 - Algoritmo\n");
 printf("4 - Compactacion\n");
 printf("5 - Dump \n");
 printf("\n");
+printf("El proceso activo posee el id: %s \n",id_proceso_activo);
+
+
+printf("\n");
 printf("Ingrese 0 para salir de la consola\n");
 
 
@@ -816,8 +844,8 @@ int bandera;
 int bandera1;
 int offset = 0;
 int cantidad = 0;
-char *palabra='\0';
-char id[6];
+char palabra[100];
+char id [6];
 int tamanio=0;
 char variable_prueba[200];
 
@@ -829,6 +857,8 @@ printf("3 - Crear Segmento\n");
 printf("4 - Destruir Segmento\n");
 printf("5 - Cambiar proceso activo \n");
 printf("6 - Volver al menu principal\n");
+printf("\n");
+printf("El proceso activo posee el id: %s \n",id_proceso_activo);
 scanf("%d",&opcion2);
 
 switch(opcion2){
@@ -848,9 +878,9 @@ case 1: printf("Ingrese la base: \n");
 				  }
 
 			  else {
-				  leer_bytes(base, offset, cantidad);
-
-				  sprintf(variable_prueba,"| Base: %d | Offset: %d  | CantidadBytes: %d |\n", base, offset, cantidad);
+				  char *leyenda=leer_bytes(base, offset, cantidad);
+				  printf("Los bytes leidos contienen la siguiente informacion: %s",leyenda);
+				  sprintf(variable_prueba,"| Base: %d | Offset: %d  | CantidadBytes: %d | Informacion: %s\n", base, offset, cantidad,leyenda);
 			  	  log_info(logger, "| Se ha solicitado leer la siguiente información %s \n", variable_prueba);
 
 
@@ -891,6 +921,9 @@ case 3: printf("Ingrese el id del segmento: \n");
 				 bandera1=crear_segmento(id,tamanio);
 				 pthread_mutex_unlock (&semHiloConexion);
 				 if(bandera1){
+					 pthread_mutex_lock (&semHiloConexion);
+					 cambio_de_proceso_activo(id);
+					 pthread_mutex_unlock (&semHiloConexion);
 					 printf("Se creo segmento %s de tamaño %d \n",id, tamanio);
 					 sprintf(variable_prueba,"| Segmento : %s  | Tamaño: %d | Base: %d\n", id, tamanio,baseSegmento);
 					 log_info(logger, "| Se ha solicitado crear el siguiente segmento: %s \n", variable_prueba);
@@ -927,40 +960,39 @@ case 4: printf("Ingrese el segmento que desea destruir: \n");
 			}
 
 
+
+
+
+
 		_consultaOpcion();
 		 break;
 
-
 case 5:   printf("Ingrese el ID de proceso que desea cambiar: \n");
 		  scanf("%s",id);
+		  printf("lla\n");
 		  if(dictionary_has_key(dictionary,id)){
+			  pthread_mutex_lock (&semHiloConexion);
 			  cambio_de_proceso_activo(id);
-			  printf("Se ha cambiado al proceso %s",id);
-			  sprintf(variable_prueba,"| ID : %s |\n", id);
+			  pthread_mutex_unlock (&semHiloConexion);
+			  printf("Se ha cambiado al proceso %s\n",id);
+			  sprintf(variable_prueba,"| ID : %s |", id);
 			  log_info(logger, "| Se solicita cambiar el proceso activo por el siguiente: %s \n", variable_prueba);}
 		  else {
-			  printf("Se ha solicitado cambiar a un proceso inexistente");
-			  sprintf(variable_prueba,"| ID : %s |\n", id);
+			  printf("Se ha solicitado cambiar a un proceso inexistente\n");
+			  sprintf(variable_prueba,"| ID : %s \n|", id);
 			  log_error(logger, "|Se desea cambiar a un proceso inexistente: %s \n", variable_prueba);
 
 		  }
-
+		  _consultaOpcion();
 break;
 
 case 6: _disenioConsola();
 		 break;
 
-}
 
 }
 
-
-void cambio_de_proceso_activo(char *id){
-
-strcpy(id_proceso_activo,id);
-
 }
-
 
 void buscaContenidoMemoriaYguarda(int offset, int bytes){
 char *puntero = memoria_principal+offset;
@@ -1022,6 +1054,19 @@ case 2: printf("Ingrese el offset: \n");
 
 }
 }
+
+//Liberamos memoria al momento de terminar con el proceso
+void liberacionDeMemoria(t_list* lista,t_list* lista2,t_dictionary* diccionario){
+list_destroy_and_destroy_elements(lista, (void*)elimino_bloque);
+	void _destruir_id(t_id *id2){
+				free(id2);
+			}
+list_destroy_and_destroy_elements(lista2, (void*)_destruir_id);
+dictionary_destroy_and_destroy_elements(diccionario,(void*)list_destroy);
+}
+
+
+
 
 //Levanta el archivo de configuracion
 void levantarArchivoUMV(){
@@ -1100,6 +1145,7 @@ void *conexion(void *numeroConexion){
 			  flag=crear_segmento(ID,segmento.tam); //Se agrego crear segmento
 			  if(flag){
 				 itoa(baseSegmento,base_segmento);
+				 cambio_de_proceso_activo(ID);
 			     strcpy(mensaje.payload,base_segmento);
 			  }
 			  else{									//Si no encuentra espacio en memoria
@@ -1107,6 +1153,7 @@ void *conexion(void *numeroConexion){
 				  flag=crear_segmento(ID,segmento.tam);
 				  if(flag){
 					  itoa(baseSegmento,base_segmento);
+					  cambio_de_proceso_activo(ID);
 					  strcpy(mensaje.payload,base_segmento);
 				  }
 				  else{

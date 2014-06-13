@@ -25,7 +25,7 @@ endif
 all: Umv
 
 dependents:
-	-cd /home/utnso/workspace/utilidades/Debug && $(MAKE) all
+	-cd /home/utnso/workspace/utilidades/Debug && $(MAKE) clean all
 
 # Tool invocations
 Umv: $(OBJS) $(USER_OBJS) /home/utnso/workspace/utilidades/Debug/libutilidades.so
